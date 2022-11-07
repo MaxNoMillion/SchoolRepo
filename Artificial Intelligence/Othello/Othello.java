@@ -35,6 +35,10 @@ public class Othello{
   boolean forfeit_white = false;
   /** Declaring moveCoords */
   int[] moveCoords = new int[2];
+  /** What game mode */
+  boolean isComputerPlayer = false;
+  /** Computer player's color */
+  char comColor = white;
 
   ////// OTHELLO CONTRUCTOR //////
   public Othello(){
@@ -81,7 +85,7 @@ public class Othello{
         System.out.println("\n    No possible move. Forfeit turn.\n");
 
         /** End game trigger */
-        if (forfeit_black && forfeit_white){
+        if (isGameOver()){
           endGame();
           return;
         }
@@ -98,6 +102,31 @@ public class Othello{
       /** Where turn toggles */
       changeTurns();
     }
+  }
+
+  public int minimax(int pos, int depth, boolean maxiPlayer){
+    if (depth == 0 || isGameOver())
+      return pos.value();
+    if (maxiPlayer){
+      int maxEval = -100000;
+      int eval = 0;
+      for (int i = 0; i < pos.child; i++){
+        eval = minimax(child, depth - 1, false);
+        maxEval = Math.max(maxEval, eval);
+      }
+      return maxEval;
+    } else {
+      int minEval = 100000;
+      int eval = 0;
+      for (int i = 0; i < pos.child; true){
+        eval = minimax(child, depth - 1, true);
+        minEval = Math.min(minEval, eval);
+      }
+    }
+  }
+
+  public int minimax(int pos, int depth, char maxiPlayer, int alpha, int beta){
+    return 0;
   }
   
   public void calculateBoard(int[] moveCoords){
@@ -288,6 +317,12 @@ public class Othello{
         buffer_board[i + 1][j + 1] = source_board[i][j];
   }
 
+  public boolean isGameOver(){
+    if (forfeit_black && forfeit_white)
+      return true;
+    return false;
+  }
+
   public void endGame(){
     System.out.println("Game has ended!!!");
 
@@ -346,11 +381,74 @@ public class Othello{
     }
   }
 
+  public void startUp(){
+    System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    System.out.println("                  ▓ ▓ ▓▓▓ ▓   ▓▓▓ ▓▓▓ ▓▓▓ ▓▓▓");
+    System.out.println("                  ▓▓▓ ▓▓  ▓   ▓   ▓ ▓ ▓▓▓ ▓▓ ");
+    System.out.println("                  ▓▓▓ ▓▓▓ ▓▓▓ ▓▓▓ ▓▓▓ ▓ ▓ ▓▓▓");
+    System.out.println();     
+    System.out.println("                            ▓▓▓ ▓▓▓          ");
+    System.out.println("                             ▓  ▓ ▓          ");
+    System.out.println("                             ▓  ▓▓▓          ");
+    System.out.println();     
+    System.out.println("                  ▓▓▓ ▓▓▓ ▓ ▓ ▓▓▓ ▓   ▓   ▓▓▓");
+    System.out.println("                  ▓ ▓  ▓  ▓▓▓ ▓▓  ▓   ▓   ▓ ▓");
+    System.out.println("                  ▓▓▓  ▓  ▓ ▓ ▓▓▓ ▓▓▓ ▓▓▓ ▓▓▓");
+    System.out.println("\n\n\n");
+    while (true){
+      System.out.print("\nAre you playing 1 player (agaist computer) or 2 player [1/2]: ");
+      /** Scanning input */
+      try {
+        Scanner scan = new Scanner(System.in);
+        int input = scan.nextInt();
+
+        if (input == 1){
+          isComputerPlayer = true;
+          break;
+        }
+        else if (input == 2){
+          isComputerPlayer = false;
+          break;
+        }
+      } catch (Exception e){}
+
+      System.out.println("\n   ** Please type only '1' or '2' **");
+    }
+    if (isComputerPlayer){
+      System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+      while (true){
+        System.out.print("\nWould you like to be black or white (NOTE: Black goes first) [b/w]? ");
+        /** Scanning input */
+        try {
+          Scanner scan = new Scanner(System.in);
+          String input = scan.nextLine();
+          System.out.println(input);
+          if (input.equalsIgnoreCase("w")){
+            comColor = black;
+            break;
+          }
+          else if (input.equalsIgnoreCase("b")){
+            comColor = white;
+            break;
+          }
+        } catch (Exception e){}
+
+        System.out.println("\n   ** Please type only 'b' or 'w' **");
+      }
+    }
+
+    System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    System.out.print("Press [ENTER] to begin.");
+    Scanner scan = new Scanner(System.in);
+    String input = scan.nextLine();
+
+    printBoard();
+    System.out.println("        ** Black's Turn **\n");
+  }
   /////// MAIN ///////
   public static void main(String[] args){
     Othello othello = new Othello();
-    othello.printBoard();
-    System.out.println("        ** Black's Turn **\n");
+    othello.startUp();
     othello.run();
   }
 }
