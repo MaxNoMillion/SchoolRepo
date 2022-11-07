@@ -37,8 +37,20 @@ public class Othello{
   int[] moveCoords = new int[2];
   /** What game mode */
   boolean isComputerPlayer = false;
-  /** Computer player's color */
+  /** Players' color (used when playing computer) */
   char comColor = white;
+  char playerColor = white;
+
+  // Scoreboard heuristic
+  static final private int[][] scoreBoard = {
+		{1000, -100,  150,  100,  100,  150, -100, 1000},
+		{-100, -200,   20,   20,   20,   20, -200, -100},
+		{ 150,   20,   15,   15,   15,   15,   20,  150},
+		{ 100,   20,   15,   10,   10,   15,   20,  100},
+		{ 100,   20,   15,   10,   10,   15,   20,  100},
+		{ 150,   20,   15,   15,   15,   15,   20,  150},
+		{-100, -200,   20,   20,   20,   20, -200, -100},
+		{1000, -100,  150,  100,  100,  150, -100, 1000}};
 
   ////// OTHELLO CONTRUCTOR //////
   public Othello(){
@@ -59,42 +71,37 @@ public class Othello{
     while (true){
       /** Updates buffer_board before any calculations */
       updateBufferBoard();
+      
       // Move Validity Check //
       /** The first check is to determine if a valid move exsists
-       *  This is checked first to reduce total calculations */
+      *  This is checked first to reduce total calculations */
       if (isPossibleMove()){
         /** For end-of-game detection 
-         *  (resets forfeit boolean for current player) */
+        *  (resets forfeit boolean for current player) */
         if (whos_turn == black)
           forfeit_black = false;
         else forfeit_white = false;
 
-        /** Checks if inputted move if valid until valid move is inputted */
-        while (!isMoveValid(moveCoords)){
-          moveCoords = readCoords();      // Updates moveCoords by reading inputted coords
-          /** Determines move validity. If move is valid, then while loop is broken */
-          if (isMoveValid(moveCoords)) 
-            break;
-          /** Reprint board */
-          updateBoardVisuals();
-          System.out.println("**** Invalid input or move ****\n");
-        } 
-      /** If no possible move, then current player forfeits turn
-       *  If both players forfeit turn, then game is over */
-      } else{
-        System.out.println("\n    No possible move. Forfeit turn.\n");
+        /** Is computer or player */
+        if (!isComputerPlayer || playerColor == whos_turn)
+          playerMove();
+        else
+          computerMove();
 
+      } else{
+        /** Else current player forfeits turn */
+        System.out.println("\n    No possible move. Forfeit turn.\n");
         /** End game trigger */
         if (isGameOver()){
           endGame();
           return;
         }
-
         /** Saves forfeit boolean */
         if (whos_turn == black)
-          forfeit_black = true;
+        forfeit_black = true;
         else forfeit_white = true;
       }
+
       /** Where flanked peices are flipped */
       calculateBoard(moveCoords);
       /** Where the board display is updated */
@@ -104,28 +111,49 @@ public class Othello{
     }
   }
 
-  public int minimax(int pos, int depth, boolean maxiPlayer){
-    if (depth == 0 || isGameOver())
-      return pos.value();
-    if (maxiPlayer){
-      int maxEval = -100000;
-      int eval = 0;
-      for (int i = 0; i < pos.child; i++){
-        eval = minimax(child, depth - 1, false);
-        maxEval = Math.max(maxEval, eval);
-      }
-      return maxEval;
-    } else {
-      int minEval = 100000;
-      int eval = 0;
-      for (int i = 0; i < pos.child; true){
-        eval = minimax(child, depth - 1, true);
-        minEval = Math.min(minEval, eval);
-      }
-    }
+  public void computerMove(){
+    // if (isAlphaBeta)
+    //   minimax(root, 0, true, Integer.MIN_VALUE, Integer.MAX_VALUE);
+    // else
+    //   minimax(root, 0, true);
   }
 
-  public int minimax(int pos, int depth, char maxiPlayer, int alpha, int beta){
+  public void playerMove(){
+    /** Checks if inputted move if valid until valid move is inputted */
+    while (!isMoveValid(moveCoords)){
+      moveCoords = readCoords();      // Updates moveCoords by reading inputted coords
+      /** Determines move validity. If move is valid, then while loop is broken */
+      if (isMoveValid(moveCoords)) 
+        break;
+      /** Reprint board */
+      updateBoardVisuals();
+      System.out.println("**** Invalid input or move ****\n");
+    } 
+  }
+
+  public int minimax(int pos, int depth, boolean maxiPlayer){
+    // if (depth == 0 || isGameOver())
+    //   return pos.value();
+    // if (maxiPlayer){
+    //   int maxEval = Integer.MIN_VALUE;
+    //   int eval = 0;
+    //   for (int i = 0; i < pos.child; i++){
+    //     eval = minimax(child, depth - 1, false);
+    //     maxEval = Math.max(maxEval, eval);
+    //   }
+    //   return maxEval;
+    // } else {
+    //   int minEval = Integer.MAX_VALUE;
+    //   int eval = 0;
+    //   for (int i = 0; i < pos.child; true){
+    //     eval = minimax(child, depth - 1, true);
+    //     minEval = Math.min(minEval, eval);
+    //   }
+    // }
+    return 0;
+  }
+
+  public int minimax(int pos, int depth, boolean maxiPlayer, int alpha, int beta){
     return 0;
   }
   
@@ -425,10 +453,12 @@ public class Othello{
           System.out.println(input);
           if (input.equalsIgnoreCase("w")){
             comColor = black;
+            playerColor = white;
             break;
           }
           else if (input.equalsIgnoreCase("b")){
             comColor = white;
+            playerColor = black;
             break;
           }
         } catch (Exception e){}
