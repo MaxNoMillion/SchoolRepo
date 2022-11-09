@@ -38,7 +38,8 @@ public class Othello{
   /** Players' color (used when playing computer) */
   char comColor = white;
   char playerColor = white;
-  /** Possible moves */
+  /** Depth of search */
+  int ply_depth = 5;
 
   // Scoreboard heuristic
   static final private int[][] score_board = {
@@ -82,8 +83,9 @@ public class Othello{
         /** Is computer or player */
         if (!isComputerPlayer || playerColor == whos_turn)
           playerMove();
-        else
+        else{
           computerMove();
+        }
 
       } else{
         /** Else current player forfeits turn */
@@ -128,11 +130,13 @@ public class Othello{
     } 
   }
 
-  public void copyBoard(char[][] ori, char[][] copy){
+  public char[][] copyBoard(char[][] ori){
+   char[][] copy = new char[board_size + 2][board_size + 2];
     /** Makes hard copies of same size boards */
     for (int i = 1; i < board_size + 1; i++)
       for (int j = 1; j < board_size + 1; j++)
         copy[i][j] = ori[i][j];
+    return copy;
   }
 
   public int heuristic(char[][] board, char current_turn){
@@ -147,26 +151,69 @@ public class Othello{
     return ourScore - opponentScore;
   }
 
-  public int minimax(int pos, int depth, boolean maxiPlayer){
-    // if (depth == 0 || isGameOver())
-    //   return heuristic(source_board, black);
-    // if (maxiPlayer){
-    //   int maxEval = Integer.MIN_VALUE;
-    //   int eval = 0;
-    //   for (int i = 0; i < pos.child; i++){
-    //     eval = minimax(child, depth - 1, false);
-    //     maxEval = Math.max(maxEval, eval);
-    //   }
-    //   return maxEval;
-    // } else {
-    //   int minEval = Integer.MAX_VALUE;
-    //   int eval = 0;
-    //   for (int i = 0; i < pos.child; true){
-    //     eval = minimax(child, depth - 1, true);
-    //     minEval = Math.min(minEval, eval);
-    //   }
-    // }
-    return 0;
+  public int[][] getPossibleMoves(char[][] board){
+    int[][] possMoves = new int[64][2];
+    int moveCounter = 0;
+    for (int i = 1; i < board_size + 1; i++){
+      for (int j = 1; j < board_size + 1; j++){
+        int[] coords = {i, j};
+        if (isMoveValid(coords)){
+          possMoves[moveCounter + 1][0] = i;
+          possMoves[moveCounter + 1][1] = j;
+          moveCounter++;
+        }
+      }
+    }
+    possMoves[0][0] = moveCounter;
+    return possMoves;
+  }
+
+  public int minimax(char[][] board, int depth, char oriTurn, char currentTurn){
+    /** Exit condition */
+    if (depth == ply_depth || isGameOver())
+      return heuristic(board, black);
+
+    /** Assigns currentTurn as this will be what deturmines min or max */
+    char otherTurn = black;
+    if (currentTurn == white)
+      otherTurn = black;
+
+    /** Gets all possible moves for current turn. */
+    int[][] possibleMoves = getPossibleMoves(board);
+
+    /** If no possible move, then forfeit turn and load other's possible moves */
+    if (possibleMoves[0][0] == 0){
+      return minimax(board, depth + 1, oriTurn, otherTurn);
+    }
+    else {
+      /** Combining min and max default values */
+      int bestEval = Integer.MIN_VALUE;
+      if (oriTurn != currentTurn)
+        bestEval = Integer.MAX_VALUE;
+
+      // Runs through possible moves
+      for (int i = 1; i < possibleMoves[0][0]; i++){
+        /** Hard copying current board to create branch */
+        char[][] temp_board = copyBoard(board);
+
+        /** Possible move of tempBoard */
+        temp_board[possibleMoves[i][0]][possibleMoves[i][1]] = currentTurn;
+
+        /** Recursively calling minimax fn to create more branches */
+        int eval = minimax(temp_board, depth + 1, oriTurn, otherTurn);
+
+        /** Setting max and min values depending on if currentTurn 
+         *  in a maximizing turn or minimizing turn */
+        if (oriTurn == currentTurn){
+          if (eval > bestEval)
+            bestEval = eval;
+        } else {
+          if (eval < bestEval)
+            bestEval = eval;
+        }
+      }
+      return bestEval;
+    }
   }
 
   public int minimax(int pos, int depth, boolean maxiPlayer, int alpha, int beta){
