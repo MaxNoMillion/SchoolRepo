@@ -40,9 +40,10 @@ public class Othello{
   /** Players' color (used when playing computer) */
   char comColor = white;
   char playerColor = white;
+  /** Possible moves */
 
   // Scoreboard heuristic
-  static final private int[][] scoreBoard = {
+  static final private int[][] score_board = {
 		{1000, -100,  150,  100,  100,  150, -100, 1000},
 		{-100, -200,   20,   20,   20,   20, -200, -100},
 		{ 150,   20,   15,   15,   15,   15,   20,  150},
@@ -131,25 +132,44 @@ public class Othello{
     } 
   }
 
+  public void copyBoard(char[][] ori, char[][] copy){
+    /** Makes hard copies of same size boards */
+    for (int i = 0; i < board_size; i++)
+      for (int j = 0; j < board_size; j++)
+        copy[i][j] = ori[i][j];
+  }
+
+  public int heuristic(char[][] board, char current_turn){
+    /** Assigning who's who */
+    char opponent = white;
+    if (current_turn == white)
+      opponent = black;
+    /** Getting both scores */
+    int ourScore = getScore(board, current_turn);
+    int opponentScore = getScore(board, opponent);
+
+    return ourScore - opponentScore;
+  }
+
   public int minimax(int pos, int depth, boolean maxiPlayer){
-    // if (depth == 0 || isGameOver())
-    //   return pos.value();
-    // if (maxiPlayer){
-    //   int maxEval = Integer.MIN_VALUE;
-    //   int eval = 0;
-    //   for (int i = 0; i < pos.child; i++){
-    //     eval = minimax(child, depth - 1, false);
-    //     maxEval = Math.max(maxEval, eval);
-    //   }
-    //   return maxEval;
-    // } else {
-    //   int minEval = Integer.MAX_VALUE;
-    //   int eval = 0;
-    //   for (int i = 0; i < pos.child; true){
-    //     eval = minimax(child, depth - 1, true);
-    //     minEval = Math.min(minEval, eval);
-    //   }
-    // }
+    if (depth == 0 || isGameOver())
+      return heuristic(buffer_board, black);
+    if (maxiPlayer){
+      int maxEval = Integer.MIN_VALUE;
+      int eval = 0;
+      for (int i = 0; i < pos.child; i++){
+        eval = minimax(child, depth - 1, false);
+        maxEval = Math.max(maxEval, eval);
+      }
+      return maxEval;
+    } else {
+      int minEval = Integer.MAX_VALUE;
+      int eval = 0;
+      for (int i = 0; i < pos.child; true){
+        eval = minimax(child, depth - 1, true);
+        minEval = Math.min(minEval, eval);
+      }
+    }
     return 0;
   }
 
@@ -225,6 +245,22 @@ public class Othello{
       System.out.println("        ** Black's Turn **\n");
     if (whos_turn == white)
       System.out.println("        ** White's Turn **\n");
+  }
+
+  public int getScore(char[][] board, char currentTurn){
+    int score = 0;
+    if (currentTurn == comColor){
+      for (int i = 0; i < board.length; i++)
+        for (int j = 0; j < board.length; j++)
+          if (board[i][j] == comColor)
+            score += score_board[i][j];
+    } else {
+      for (int i = 0; i < board.length; i++)
+        for (int j = 0; j < board.length; j++)
+          if (board[i][j] == playerColor)
+            score += score_board[i][j];
+    }
+    return score;
   }
 
   public int[] readCoords(){
@@ -354,15 +390,15 @@ public class Othello{
   public void endGame(){
     System.out.println("Game has ended!!!");
 
-    if (getScore('w') > getScore('b'))
+    if (counterPieces('w') > counterPieces('b'))
       System.out.println("\n\n\n\nWhite WON!!!\n\n\n\n");
-    else if (getScore('b') > getScore('w'))
+    else if (counterPieces('b') > counterPieces('w'))
       System.out.println("\n\n\n\nBlack WON!!!\n\n\n\n");
     else 
       System.out.println("\n\n\n\n It's a TIE!!!\n\n\n\n");
   }
   
-  public int getScore(char player){
+  public int counterPieces(char player){
     int white_counter = 0;
     int black_counter = 0;
     for (int i = 0; i < board_size; i++){
@@ -385,8 +421,8 @@ public class Othello{
     System.out.println("    ▓ ▓  ▓  ▓▓▓ ▓▓  ▓   ▓   ▓ ▓");
     System.out.println("    ▓▓▓  ▓  ▓ ▓ ▓▓▓ ▓▓▓ ▓▓▓ ▓▓▓");
     System.out.println();
-    System.out.print("      White: " + getScore('w'));
-    System.out.println("\t    Black: " + getScore('b'));
+    System.out.print("      White: " + counterPieces('w'));
+    System.out.println("\t    Black: " + counterPieces('b'));
     //System.out.println();
 
     /** Prints colomn coord */
