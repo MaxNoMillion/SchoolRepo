@@ -39,7 +39,7 @@ public class Othello{
   char comColor = white;
   char playerColor = white;
   /** Depth of search */
-  int ply_depth = 5;
+  int ply_depth = 7;
   /** Alpah/Beta Pruning toggle */
   boolean isAlphaBeta = false;
 
@@ -71,7 +71,6 @@ public class Othello{
   public void run(){
     // Main Game Loop //
     while (true){
-      
       // Move Validity Check //
       /** The first check is to determine if a valid move exsists
       *  This is checked first to reduce total calculations */
@@ -83,12 +82,13 @@ public class Othello{
         else forfeit_white = false;
 
         /** Is computer or player */
-        if (isComputerPlayer && comColor == whos_turn)
+        if (isComputerPlayer && comColor == whos_turn){
           computerMove();
+        }
         else
           playerMove();
 
-      } else{
+      } else {
         /** Else current player forfeits turn */
         System.out.println("\n    No possible move. Forfeit turn.\n");
         /** End game trigger */
@@ -104,10 +104,10 @@ public class Othello{
 
       /** Where flanked peices are flipped */
       calculateBoard(moveCoords);
-      /** Where the board display is updated */
-      updateBoardVisuals();
       /** Where turn toggles */
       changeTurns();
+      /** Where the board display is updated */
+      updateBoardVisuals();
     }
   }
 
@@ -183,12 +183,6 @@ public class Othello{
     /** Gets all possible moves for current turn. */
     int[][] possibleMoves = getPossibleMoves(board);
 
-    // System.out.println("Frof");
-    // for (int i = 0; i < 10; i++){
-    //   System.out.print(possibleMoves[i][0] + " ");
-    //   System.out.println(possibleMoves[i][1]);
-    // }
-
     /** If no possible move, then forfeit turn and load other's possible moves */
     if (possibleMoves[0][0] == 0){
       return minimaxValue(board, depth + 1, oriTurn, otherTurn);
@@ -238,37 +232,28 @@ public class Othello{
     /** Gets all possible moves for current turn. */
     int[][] possibleMoves = getPossibleMoves(board);
 
-    if (possibleMoves[0][0] == 0){
-      best_coords[0] = -1;
-      best_coords[1] = -1;
-    } else {
+    int bestEval = Integer.MIN_VALUE;
 
-      int bestEval = Integer.MIN_VALUE;
-      
+    for (int i = 1; i < possibleMoves[0][0] + 1; i++){
 
-      for (int i = 1; i < possibleMoves[0][0] + 1; i++){
-        /** Hard copying current board to create branch */
-        char[][] temp_board = copyBoard(board);
+      /** Hard copying current board to create branch */
+      char[][] temp_board = copyBoard(board);
 
-        /** Possible move of tempBoard */
-        temp_board[possibleMoves[i][0]][possibleMoves[i][1]] = currentTurn;
+      /** Possible move of tempBoard */
+      temp_board[possibleMoves[i][0]][possibleMoves[i][1]] = currentTurn;
 
-        int eval = minimaxValue(temp_board, 1, currentTurn, otherTurn);
+      int eval = minimaxValue(temp_board, 1, currentTurn, otherTurn);
 
-        if (eval > bestEval){
-          bestEval = eval;
-          best_coords[0] = possibleMoves[i][0];
-          best_coords[1] = possibleMoves[i][1];
-        }
-      }
-      
-      source_board[best_coords[0]][best_coords[1]] = currentTurn;
+      if (eval > bestEval){
+        bestEval = eval;
+        best_coords[0] = possibleMoves[i][0];
+        best_coords[1] = possibleMoves[i][1];
+      }  
     }
-
-    
-
-
-
+    moveCoords = best_coords;  
+    // Forming movestate (Not great way, but don't have time to refactor)
+    for (int dir = 0; dir < 8; dir++)
+      move_state[dir] = isValidDirection(dir, moveCoords);
   }
 
   public int minimax(int pos, int depth, boolean maxiPlayer, int alpha, int beta){
@@ -279,7 +264,7 @@ public class Othello{
     /** Places piece down on selected tile. */
     if (whos_turn == black)
       source_board[moveCoords[0] + 1][moveCoords[1] + 1] = black;
-    if (whos_turn == white)
+    else
       source_board[moveCoords[0] + 1][moveCoords[1] + 1] = white;
 
     for (int i = 0; i < move_state.length; i++)
@@ -337,25 +322,20 @@ public class Othello{
   }
 
   public void updateBoardVisuals(){
-    printBoard();
-    /** Prints the current turn */
-    if (whos_turn == black)
-      System.out.println("        ** Black's Turn **\n");
-    if (whos_turn == white)
-      System.out.println("        ** White's Turn **\n");
+    update();
   }
 
   public int getScore(char[][] board, char currentTurn){
     int score = 0;
     if (currentTurn == comColor){
-      for (int i = 1; i < board_size + 1; i++)
-        for (int j = 1; j < board_size + 1; j++)
-          if (board[i][j] == comColor)
+      for (int i = 0; i < board_size; i++)
+        for (int j = 0; j < board_size; j++)
+          if (board[i + 1][j + 1] == comColor)
             score += score_board[i][j];
     } else {
-      for (int i = 1; i < board_size + 1; i++)
-        for (int j = 1; j < board_size + 1; j++)
-          if (board[i][j] == playerColor)
+      for (int i = 0; i < board_size; i++)
+        for (int j = 0; j < board_size; j++)
+          if (board[i + 1][j + 1] == playerColor)
             score += score_board[i][j];
     }
     return score;
@@ -387,9 +367,9 @@ public class Othello{
       return valid;
 
     // Checking each direction for flanking and recording flanking direction in move_state
-    for (int dir = 0; dir < 8; dir++){
+    for (int dir = 0; dir < 8; dir++)
       move_state[dir] = isValidDirection(dir, moveCoords);
-    }
+    
     // Anding all directions to determine if move had valid direction
     for (int i = 0; i < 8; i++)
       valid = valid || move_state[i];
@@ -507,7 +487,7 @@ public class Othello{
       return black_counter;
   }
 
-  public void printBoard(){
+  public void update(){
     System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     System.out.println("    ▓▓▓ ▓▓▓ ▓ ▓ ▓▓▓ ▓   ▓   ▓▓▓");
     System.out.println("    ▓ ▓  ▓  ▓▓▓ ▓▓  ▓   ▓   ▓ ▓");
@@ -517,6 +497,25 @@ public class Othello{
     System.out.println("\t    Black: " + counterPieces('b'));
     //System.out.println();
 
+    printBoard(source_board);
+
+    /** Prints the current turn */
+    if (whos_turn == black)
+      System.out.println("        ** Black's Turn **");
+    else
+      System.out.println("        ** White's Turn **");
+
+    // Pauses to show computer players move
+    if (isComputerPlayer && whos_turn == comColor){
+      System.out.print("\nPress [ENTER] to continue.");
+      Scanner scan = new Scanner(System.in);
+      String input = scan.nextLine();
+    } else {
+      System.out.println();
+    }
+  }
+
+  public void printBoard(char[][] board){
     /** Prints colomn coord */
     System.out.print("      ");
     for (int i = 1; i < board_size + 1; i++)
@@ -531,7 +530,7 @@ public class Othello{
     for (int i = 1; i < board_size + 1; i++){
       System.out.print("  " + (i - 1) + "  ");
       for (int j = 1; j < board_size + 1; j++){
-        System.out.print("|" + source_board[i][j] + source_board[i][j]);
+        System.out.print("|" + board[i][j] + board[i][j]);
       }
       System.out.print("|\n");
     }
@@ -595,13 +594,7 @@ public class Othello{
       }
     }
 
-    System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    System.out.print("Press [ENTER] to begin.");
-    Scanner scan = new Scanner(System.in);
-    String input = scan.nextLine();
-
-    printBoard();
-    System.out.println("        ** Black's Turn **\n");
+    update();
   }
   /////// MAIN ///////
   public static void main(String[] args){
