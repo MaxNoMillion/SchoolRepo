@@ -40,6 +40,8 @@ public class Othello{
   char playerColor = white;
   /** Depth of search */
   int ply_depth = 5;
+  /** Alpah/Beta Pruning toggle */
+  boolean isAlphaBeta = false;
 
   // Scoreboard heuristic
   static final private int[][] score_board = {
@@ -81,11 +83,10 @@ public class Othello{
         else forfeit_white = false;
 
         /** Is computer or player */
-        if (!isComputerPlayer || playerColor == whos_turn)
-          playerMove();
-        else{
+        if (isComputerPlayer && comColor == whos_turn)
           computerMove();
-        }
+        else
+          playerMove();
 
       } else{
         /** Else current player forfeits turn */
@@ -111,10 +112,10 @@ public class Othello{
   }
 
   public void computerMove(){
-    // if (isAlphaBeta)
-    //   minimax(root, 0, true, Integer.MIN_VALUE, Integer.MAX_VALUE);
-    // else
-    //   minimax(root, 0, true);
+    if (isAlphaBeta)
+      minimax(source_board, whos_turn);
+    else
+      minimax(source_board, whos_turn);
   }
 
   public void playerMove(){
@@ -168,22 +169,29 @@ public class Othello{
     return possMoves;
   }
 
-  public int minimax(char[][] board, int depth, char oriTurn, char currentTurn){
+  public int minimaxValue(char[][] board, int depth, char oriTurn, char currentTurn){
     /** Exit condition */
-    if (depth == ply_depth || isGameOver())
-      return heuristic(board, black);
+    if (depth == ply_depth || isGameOver()){
+      return heuristic(board, oriTurn);
+    }
 
     /** Assigns currentTurn as this will be what deturmines min or max */
     char otherTurn = black;
-    if (currentTurn == white)
-      otherTurn = black;
+    if (currentTurn == black)
+      otherTurn = white;
 
     /** Gets all possible moves for current turn. */
     int[][] possibleMoves = getPossibleMoves(board);
 
+    // System.out.println("Frof");
+    // for (int i = 0; i < 10; i++){
+    //   System.out.print(possibleMoves[i][0] + " ");
+    //   System.out.println(possibleMoves[i][1]);
+    // }
+
     /** If no possible move, then forfeit turn and load other's possible moves */
     if (possibleMoves[0][0] == 0){
-      return minimax(board, depth + 1, oriTurn, otherTurn);
+      return minimaxValue(board, depth + 1, oriTurn, otherTurn);
     }
     else {
       /** Combining min and max default values */
@@ -191,8 +199,10 @@ public class Othello{
       if (oriTurn != currentTurn)
         bestEval = Integer.MAX_VALUE;
 
+      //System.out.println(bestEval);
+
       // Runs through possible moves
-      for (int i = 1; i < possibleMoves[0][0]; i++){
+      for (int i = 1; i < possibleMoves[0][0] + 1; i++){
         /** Hard copying current board to create branch */
         char[][] temp_board = copyBoard(board);
 
@@ -200,7 +210,7 @@ public class Othello{
         temp_board[possibleMoves[i][0]][possibleMoves[i][1]] = currentTurn;
 
         /** Recursively calling minimax fn to create more branches */
-        int eval = minimax(temp_board, depth + 1, oriTurn, otherTurn);
+        int eval = minimaxValue(temp_board, depth + 1, oriTurn, otherTurn);
 
         /** Setting max and min values depending on if currentTurn 
          *  in a maximizing turn or minimizing turn */
@@ -214,6 +224,51 @@ public class Othello{
       }
       return bestEval;
     }
+  }
+
+  public void minimax(char[][] board, char currentTurn){
+
+    int[] best_coords = new int[2];
+
+    /** Assigns currentTurn as this will be what deturmines min or max */
+    char otherTurn = black;
+    if (currentTurn == black)
+      otherTurn = white;
+
+    /** Gets all possible moves for current turn. */
+    int[][] possibleMoves = getPossibleMoves(board);
+
+    if (possibleMoves[0][0] == 0){
+      best_coords[0] = -1;
+      best_coords[1] = -1;
+    } else {
+
+      int bestEval = Integer.MIN_VALUE;
+      
+
+      for (int i = 1; i < possibleMoves[0][0] + 1; i++){
+        /** Hard copying current board to create branch */
+        char[][] temp_board = copyBoard(board);
+
+        /** Possible move of tempBoard */
+        temp_board[possibleMoves[i][0]][possibleMoves[i][1]] = currentTurn;
+
+        int eval = minimaxValue(temp_board, 1, currentTurn, otherTurn);
+
+        if (eval > bestEval){
+          bestEval = eval;
+          best_coords[0] = possibleMoves[i][0];
+          best_coords[1] = possibleMoves[i][1];
+        }
+      }
+      
+      source_board[best_coords[0]][best_coords[1]] = currentTurn;
+    }
+
+    
+
+
+
   }
 
   public int minimax(int pos, int depth, boolean maxiPlayer, int alpha, int beta){
@@ -293,13 +348,13 @@ public class Othello{
   public int getScore(char[][] board, char currentTurn){
     int score = 0;
     if (currentTurn == comColor){
-      for (int i = 1; i < board.length + 1; i++)
-        for (int j = 1; j < board.length + 1; j++)
+      for (int i = 1; i < board_size + 1; i++)
+        for (int j = 1; j < board_size + 1; j++)
           if (board[i][j] == comColor)
             score += score_board[i][j];
     } else {
-      for (int i = 1; i < board.length + 1; i++)
-        for (int j = 1; j < board.length + 1; j++)
+      for (int i = 1; i < board_size + 1; i++)
+        for (int j = 1; j < board_size + 1; j++)
           if (board[i][j] == playerColor)
             score += score_board[i][j];
     }
