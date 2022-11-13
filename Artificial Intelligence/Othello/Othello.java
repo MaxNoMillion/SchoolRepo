@@ -148,7 +148,7 @@ public class Othello{
     /** Getting both scores */
     int ourScore = getScore(board, current_turn);
     int opponentScore = getScore(board, opponent);
-
+    //System.out.println(ourScore - opponentScore);
     return ourScore - opponentScore;
   }
 
@@ -327,17 +327,10 @@ public class Othello{
 
   public int getScore(char[][] board, char currentTurn){
     int score = 0;
-    if (currentTurn == comColor){
-      for (int i = 0; i < board_size; i++)
-        for (int j = 0; j < board_size; j++)
-          if (board[i + 1][j + 1] == comColor)
-            score += score_board[i][j];
-    } else {
-      for (int i = 0; i < board_size; i++)
-        for (int j = 0; j < board_size; j++)
-          if (board[i + 1][j + 1] == playerColor)
-            score += score_board[i][j];
-    }
+    for (int i = 0; i < board_size; i++)
+      for (int j = 0; j < board_size; j++)
+        if (board[i + 1][j + 1] == currentTurn)
+          score += score_board[i][j];
     return score;
   }
 
