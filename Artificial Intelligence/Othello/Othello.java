@@ -330,7 +330,7 @@ public class Othello{
     for (int i = 0; i < board_size; i++)
       for (int j = 0; j < board_size; j++)
         if (board[i + 1][j + 1] == currentTurn)
-          score += score_board[i][j];
+          score += 1; //score_board[i][j];
     return score;
   }
 
