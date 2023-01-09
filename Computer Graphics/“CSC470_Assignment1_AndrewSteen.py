@@ -18,6 +18,59 @@ d = 500
 
 DEBUG = True
 
+class Object:
+    def __init__(self, shape, size, coord):
+        self.shape = shape
+        self.coord = coord
+
+        if size >= 0:
+            self.size = size
+        else:
+            self.size = 0
+
+        if shape == "pyrimid":
+            apex = [coord[0], coord[1] + size, coord[2]]
+            base1 = [coord[0] + size, coord[1] - size, coord[2] - size]
+            base2 = [coord[0] - size, coord[1] - size, coord[2] - size]
+            base3 = [coord[0] - size, coord[1] - size, coord[2] + size]
+            base4 = [coord[0] + size, coord[1] - size, coord[2] + size]
+
+            self.point_cloud = [apex, base1, base2, base3, base4]
+
+            frontpoly = [apex,base1,base4]
+            rightpoly = [apex,base2,base1]
+            backpoly = [apex,base3,base2]
+            leftpoly = [apex,base4,base3]
+            bottompoly = [base1,base2,base3,base4]
+
+            self.polies = [bottompoly, frontpoly, rightpoly, backpoly, leftpoly]
+
+
+
+        if shape == "square":
+            top1 = [coord[0] + size, coord[1] + size, coord[2] - size]
+            top2 = [coord[0] + size, coord[1] + size, coord[2] + size]
+            top3 = [coord[0] - size, coord[1] + size, coord[2] + size]
+            top4 = [coord[0] - size, coord[1] + size, coord[2] - size]
+            base1 = [coord[0] + size, coord[1] - size, coord[2] - size]
+            base2 = [coord[0] + size, coord[1] - size, coord[2] + size]
+            base3 = [coord[0] - size, coord[1] - size, coord[2] + size]
+            base4 = [coord[0] - size, coord[1] - size, coord[2] - size]
+
+            self.point_cloud = [top1, top2, top3, top4, base1, base2, base3, base4]
+
+            bottompoly = [base1,base2,base3,base4]
+            toppoly = [top1, top2, top3, top4]
+            frontpoly = [top1, base1, base4, top4]
+            backpoly = [top2, base2, base3, top3]
+            rightpoly = [top2, base2, base1, top1]
+            leftpoly = [top4, base4, base3, top3]
+
+            self.polies = [bottompoly, toppoly, frontpoly, backpoly, rightpoly, leftpoly]
+
+
+
+
 # ***************************** Initialize Pyramid Object ***************************
 # Definition  of the five underlying points
 # apex = [0,50,100]
