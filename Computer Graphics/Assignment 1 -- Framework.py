@@ -1,8 +1,8 @@
 # ****NOTE: This framework defines a world with a single polygon: a pyramid ****
 #
 
-import math
 import copy
+import math
 from tkinter import *
 
 CanvasWidth = 400

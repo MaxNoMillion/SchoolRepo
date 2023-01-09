@@ -33,7 +33,7 @@ class Object:
     # This class function will draw an object by repeatedly callying drawPoly on each polygon in the object
     def drawObject(self):
         ## Drawing Every Poly in Object
-        for poly in self:
+        for poly in self.shape:
             Object.drawPoly(poly)
 
     # This class function will draw a polygon by repeatedly callying drawLine on each pair of points
@@ -84,7 +84,6 @@ class Object:
         ## Return coord of display point
         return displayXY
 
-        
     # This class function resets object to its original position
     def resetObject(self):
         for i in range (len(self.point_cloud)):
@@ -144,7 +143,7 @@ class Object:
     # vector so the amount of displacement in each dimension can vary.
     def translate(self, displacement):
         ## Added displacement amounts per point of object cloud
-        for point in self:
+        for point in self.point_cloud:
             point[0] = point[0] + displacement[0]
             point[1] = point[1] - displacement[1]
             point[2] = point[2] - displacement[2]
@@ -180,7 +179,7 @@ class Object:
         ## Then We Must Translated to 0,0,0 For in Place Scaling
         self.translateToOrigin(original_location)
         ## Then We Must Preform a Rotation on All Points
-        for point in object:
+        for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
             point[0] = X * math.cos(rads) - Y * math.sin(rads)
             point[1] = X * math.sin(rads) + Y * math.cos(rads)
@@ -201,7 +200,7 @@ class Object:
         ## Then We Must Translated to 0,0,0 For in Place Scaling
         self.translateToOrigin(original_location)
         ## Then We Must Preform a Rotation on All Points
-        for point in object:
+        for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
             point[0] = X * math.cos(rads) + Z * math.sin(rads)
             point[1] = Y
@@ -212,9 +211,9 @@ class Object:
         if DEBUG:
             print(self.getVisualCenter())
 
-# This function performs a rotation of an object about the X axis (from +Y to +Z)
-# by 'degrees', assuming the object is centered at the origin.  The rotation is CW
-# in a LHS when viewed from +X looking toward the origin.
+    # This function performs a rotation of an object about the X axis (from +Y to +Z)
+    # by 'degrees', assuming the object is centered at the origin.  The rotation is CW
+    # in a LHS when viewed from +X looking toward the origin.
     def rotateX(self, degrees):
         rads = math.radians(degrees)
         ## First We Must Record Original Location
@@ -222,7 +221,7 @@ class Object:
         ## Then We Must Translated to 0,0,0 For in Place Scaling
         self.translateToOrigin(original_location)
         ## Then We Must Preform a Rotation on All Points
-        for point in object:
+        for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
             point[0] = X
             point[1] = Y * math.cos(rads) - Z * math.sin(rads)
@@ -235,47 +234,50 @@ class Object:
 
 
 
-# ***************************** Initialize Pyramid Object ***************************
+# ***************************** Initialize Objects ***************************
 # Definition  of the five underlying points
-# apex = [0,50,100]
-# base1 = [50,-50,50]
-# base2 = [50,-50,150]
-# base3 = [-50,-50,150]
-# base4 = [-50,-50,50]
-top1 = [50,50,50]
-top2 = [50,50,150]
-top3 = [-50,50,150]
-top4 = [-50,50,50]
-base1 = [50,-50,50]
-base2 = [50,-50,150]
-base3 = [-50,-50,150]
-base4 = [-50,-50,50]
+## Pyramid
+py_apex = [0,50,100]
+py_base1 = [50,-50,50]
+py_base2 = [50,-50,150]
+py_base3 = [-50,-50,150]
+py_base4 = [-50,-50,50]
+# Square
+sq_top0_1 = [50,50,50]
+sq_top0_2 = [50,50,150]
+sq_top0_3 = [-50,50,150]
+sq_top0_4 = [-50,50,50]
+sq_base0_1 = [50,-50,50]
+sq_base0_2 = [50,-50,150]
+sq_base0_3 = [-50,-50,150]
+sq_base0_4 = [-50,-50,50]
 
 # Definition of the five polygon faces using the meaningful point names
 # Polys are defined in clockwise order when viewed from the outside
-# frontpoly = [apex,base1,base4]
-# rightpoly = [apex,base2,base1]
-# backpoly = [apex,base3,base2]
-# leftpoly = [apex,base4,base3]
-# bottompoly = [base1,base2,base3,base4]
-bottompoly = [base1,base2,base3,base4]
-toppoly = [top1, top2, top3, top4]
-frontpoly = [top1, base1, base4, top4]
-backpoly = [top2, base2, base3, top3]
-rightpoly = [top2, base2, base1, top1]
-leftpoly = [top4, base4, base3, top3]
+# Pyramid
+py_frontpoly = [py_apex, py_base1, py_base4]
+py_rightpoly = [py_apex, py_base2, py_base1]
+py_backpoly = [py_apex, py_base3, py_base2]
+py_leftpoly = [py_apex, py_base4, py_base3]
+py_bottompoly = [py_base1, py_base2, py_base3, py_base4]
+# Square0
+sq_bottompoly0 = [sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
+sq_toppoly0 = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4]
+sq_frontpoly0 = [sq_top0_1, sq_base0_1, sq_base0_4, sq_top0_4]
+sq_backpoly0 = [sq_top0_2, sq_base0_2, sq_base0_3, sq_top0_3]
+sq_rightpoly0 = [sq_top0_2, sq_base0_2, sq_base0_1, sq_top0_1]
+sq_leftpoly0 = [sq_top0_4, sq_base0_4, sq_base0_3, sq_top0_3]
 
 
 # Definition of the object
-#Pyramid = [bottompoly, frontpoly, rightpoly, backpoly, leftpoly]
-square = [bottompoly, toppoly, frontpoly, backpoly, rightpoly, leftpoly]
+Pyramid = [py_bottompoly, py_frontpoly, py_rightpoly, py_backpoly, py_leftpoly]
+square = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
 
 # Definition of the Pyramid's underlying point cloud.  No structure, just the points.
-# PyramidPointCloud = [apex, base1, base2, base3, base4]
-# DefaultPyramidPointCloud = copy.deepcopy(PyramidPointCloud)
-square_point_cloud = [top1, top2, top3, top4, base1, base2, base3, base4]
+pyramid_point_cloud = [py_apex, py_base1, py_base2, py_base3, py_base4]
+square0_point_cloud = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4, sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
 
-Square1 = Object(square_point_cloud, square)
+Square0 = Object(square0_point_cloud, square)
 
 #************************************************************************************
 
@@ -284,15 +286,9 @@ Square1 = Object(square_point_cloud, square)
 # structure rather than creating a new structure or just switching a pointer.  In other
 # words, you'll need manually update the value of every x, y, and z of every point in
 # point cloud (vertex list).
-# def resetPyramid():
-#     for i in range(len(PyramidPointCloud)):
-#         for j in range(3):
-#             PyramidPointCloud[i][j] = DefaultPyramidPointCloud[i][j]
-
 
 # **************************************************************************
 # Everything below this point implements the interface
-
 def resetScene():
     w.delete(ALL)
     Object.resetScene()
@@ -306,67 +302,67 @@ def larger(object):
 
 def smaller(object):
     w.delete(ALL)
-    Object.scale(object.point_cloud,0.9)
+    object.scale(0.9)
     object.drawObject()
 
 def forward(object):
     w.delete(ALL)
-    Object.translate(object.point_cloud,[0,0,5])
+    object.translate([0,0,5])
     object.drawObject()
 
 def backward(object):
     w.delete(ALL)
-    Object.translate(object.point_cloud,[0,0,-5])
+    object.translate([0,0,-5])
     object.drawObject()
 
 def left(object):
     w.delete(ALL)
-    Object.translate(object.point_cloud,[-5,0,0])
+    object.translate([-5,0,0])
     object.drawObject()
 
 def right(object):
     w.delete(ALL)
-    Object.translate(object.point_cloud,[5,0,0])
+    object.translate([5,0,0])
     object.drawObject()
 
 def up(object):
     w.delete(ALL)
-    Object.translate(object.point_cloud,[0,5,0])
+    object.translate([0,5,0])
     object.drawObject()
 
 def down(object):
     w.delete(ALL)
-    Object.translate(object.point_cloud,[0,-5,0])
+    object.translate([0,-5,0])
     object.drawObject()
 
 def xPlus(object):
     w.delete(ALL)
-    Object.rotateX(object.point_cloud,5)
+    object.rotateX(5)
     object.drawObject()
 
 def xMinus(object):
     w.delete(ALL)
-    Object.rotateX(object.point_cloud,-5)
+    object.rotateX(-5)
     object.drawObject()
 
 def yPlus(object):
     w.delete(ALL)
-    Object.rotateY(object.point_cloud,5)
+    object.rotateY(5)
     object.drawObject()
 
 def yMinus(object):
     w.delete(ALL)
-    Object.rotateY(object.point_cloud,-5)
+    object.rotateY(-5)
     object.drawObject()
 
 def zPlus(object):
     w.delete(ALL)
-    Object.rotateZ(object.point_cloud,5)
+    object.rotateZ(5)
     object.drawObject()
 
 def zMinus(object):
     w.delete(ALL)
-    Object.rotateZ(object.point_cloud,-5)
+    object.rotateZ(-5)
     object.drawObject()
 
 
@@ -375,9 +371,9 @@ outerframe = Frame(root)
 outerframe.pack()
 
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
-
-for object in Object.all_objects:
-    object.drawObject()
+# for object in Object.all_objects:
+#     object.drawObject()
+Square0.drawObject()
 w.pack()
 
 controlpanel = Frame(outerframe)
