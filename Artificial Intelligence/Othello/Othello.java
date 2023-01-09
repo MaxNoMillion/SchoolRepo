@@ -322,6 +322,14 @@ public class Othello{
   }
 
   public void updateBoardVisuals(){
+<<<<<<< HEAD
+    printBoard();
+    /** Prints the current turn */
+    if (whos_turn == black)
+      System.out.println("        ** Black's Turn **\n");
+    else 
+      System.out.println("        ** White's Turn **\n");
+=======
     update();
   }
 
@@ -332,6 +340,7 @@ public class Othello{
         if (board[i + 1][j + 1] == currentTurn)
           score += 1; //score_board[i][j];
     return score;
+>>>>>>> b5749c01cd44af0598b37177511d2d8ff1bffcff
   }
 
   public int[] readCoords(){
