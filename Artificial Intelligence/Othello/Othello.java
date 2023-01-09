@@ -223,7 +223,7 @@ public class Othello{
     /** Prints the current turn */
     if (whos_turn == black)
       System.out.println("        ** Black's Turn **\n");
-    if (whos_turn == white)
+    else 
       System.out.println("        ** White's Turn **\n");
   }
 
