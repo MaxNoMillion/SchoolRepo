@@ -60,7 +60,6 @@ class Object:
         start_display = []
         end_sp = []
         end_display = []
-
         ## First We Must Convert Spacial Coords to Projected Coords ##
         ## And Then Convert From Prejected Coords to Display Coords ##
             # We must convert both start and end points
@@ -246,7 +245,6 @@ class Object:
             print(self.getVisualCenter())
 
 
-
 # ***************************** Initialize Objects ***************************
 # Definition of the underlying points
 ## Pyramid
@@ -414,7 +412,7 @@ def zMinus():
     object.rotateZ(-5)
     Object.drawAllObjects()
 
-
+#*******************************************************************************#
 
 root = Tk()
 outerframe = Frame(root)
