@@ -16,9 +16,10 @@ CanvasWidth = 400
 CanvasHeight = 400
 d = 500
 
-DEBUG = True
+# Debug Toggle
+DEBUG = False
 
-
+# Object class to make adding shapes easier
 class Object:
     ## Contains All Objects in Scene
     all_objects = []
@@ -26,19 +27,20 @@ class Object:
     ## Constructor for Object Class
     def __init__(self, point_cloud, shape):
         self.point_cloud = point_cloud
-        self.default_point_cloud = copy.deepcopy(point_cloud)
-        self.temp_visual_center = []
+        self.default_point_cloud = copy.deepcopy(point_cloud)       # Making deepCopy for resetting
+        self.temp_visual_center = []                                # For inPlace rotation and scaling
         self.shape = shape
-        Object.all_objects.append(self)
+        Object.all_objects.append(self)                             # Adds objects to list
 
     # This class function draws all objects
     def drawAllObjects():
+        # Calls drawObject function on each object in all_objects
         for object in Object.all_objects:
             Object.drawObject(object)
 
     # This class function will draw an object by repeatedly callying drawPoly on each polygon in the object
     def drawObject(self):
-        ## Drawing Every Poly in Object
+        ## Draws each polygon of object
         for poly in self.shape:
             Object.drawPoly(poly)
 
@@ -53,6 +55,7 @@ class Object:
     # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
     # draw the actual line using the built-in create_line method
     def drawLine(start,end):
+        # Initiallize coord vectors
         start_sp = []
         start_display = []
         end_sp = []
@@ -65,6 +68,7 @@ class Object:
         start_display = Object.convertToDisplayCoordinates(start_sp)
         end_sp = Object.project(end)
         end_display = Object.convertToDisplayCoordinates(end_sp)
+        # Tkinter function to draw line on window
         w.create_line(start_display[0],start_display[1],end_display[0],end_display[1])
 
     # This class function converts from 3D to 2D (+ depth) using the perspective projection technique.  Note that it
@@ -92,33 +96,37 @@ class Object:
 
     # This class function resets object to its original position
     def resetObject(self):
+        # Resets all points of object to original location
         for i in range (len(self.point_cloud)):
             for j in range(3):
                 self.point_cloud[i][j] = self.default_point_cloud[i][j]
 
     # This class function resets entire scene
     def resetScene():
+        # Calls resetObject function on each object in all_objects
         for object in Object.all_objects:
             object.resetObject()
 
     # This class functions calculates visual center of object
     def getVisualCenter(self):
         ## First We Must Find Visual Center ##
-        # Getting bounds
-        X_min, X_max, Y_min, Y_max, Z_min, Z_max = 0, 0, 0, 0, 0, 0
+        # Initiallizing min and max values
+        X_min, X_max, Y_min, Y_max, Z_min, Z_max = float('inf'), float('-inf'), float('inf'), float('-inf'), float('inf'), float('-inf')
+        # Looping through points in the objects' point clouds
         for point in self.point_cloud:
+            # Decoupling
             X, Y, Z = point[0], point[1], point[2]
-            if X < X_min:
+            if X < X_min:       # Getting min X
                 X_min = X
-            if X > X_max:
+            if X > X_max:       # Getting max X
                 X_max = X
-            if Y < Y_min:
+            if Y < Y_min:       # Getting min Y
                 Y_min = Y
-            if Y > Y_max:
+            if Y > Y_max:       # Getting max Y
                 Y_max = Y
-            if Z < Z_min:
+            if Z < Z_min:       # Getting min Z
                 Z_min = Z
-            if Z > Z_max:
+            if Z > Z_max:       # Getting max Z
                 Z_max = Z
         ## Using Max and Min Values to Calc Visual Center
         X_center = (X_max + X_min) / 2
@@ -129,8 +137,9 @@ class Object:
 
     # This functions translates object to origin with respect to its visual center.
     def translateToOrigin(self):
+        # Saves current visual center into temp var
         self.temp_visual_center = self.getVisualCenter()
-        ref = self.temp_visual_center
+        ref = self.temp_visual_center   # Set to ref to ease the mind
         ## Then Translate All Points to New Center Location
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
@@ -140,6 +149,7 @@ class Object:
 
     # This function translates object back to original location
     def translateBack(self):
+        # Setting ref to previous visual center
         ref = self.temp_visual_center
         ## Translate All Points to Original Location
         for point in self.point_cloud:
@@ -157,7 +167,7 @@ class Object:
             point[0] = X + displacement[0]
             point[1] = Y + displacement[1]
             point[2] = Z - displacement[2]
-        
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
@@ -166,6 +176,7 @@ class Object:
     def scale(self, scalefactor):
         ## Then We Must Translated to 0,0,0 For in Place Scaling
         self.translateToOrigin()
+        #print(self.getVisualCenter())
         ## Multiplying scalefactor amount with points of object cloud
         for point in self.point_cloud:
             point[0] = point[0] * scalefactor
@@ -173,7 +184,7 @@ class Object:
             point[2] = point[2] * scalefactor
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
-
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
@@ -181,7 +192,7 @@ class Object:
     # by 'degrees', assuming the object is centered at the origin.  The rotation is CCW
     # in a LHS when viewed from -Z [the location of the viewer in the standard postion]
     def rotateZ(self, degrees):
-        rads = math.radians(degrees)
+        rads = float(math.radians(float(degrees)))
         ## Then We Must Translated to 0,0,0 For in Place Scaling
         self.translateToOrigin()
         ## Then We Must Preform a Rotation on All Points
@@ -192,7 +203,7 @@ class Object:
             point[2] = Z
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
-
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
@@ -200,7 +211,7 @@ class Object:
     # by 'degrees', assuming the object is centered at the origin.  The rotation is CW
     # in a LHS when viewed from +Y looking toward the origin.
     def rotateY(self, degrees):
-        rads = math.radians(degrees)
+        rads = float(math.radians(float(degrees)))
         ## Then We Must Translated to 0,0,0 For in Place Scaling
         self.translateToOrigin()
         ## Then We Must Preform a Rotation on All Points
@@ -211,7 +222,7 @@ class Object:
             point[2] = -X * math.sin(rads) + Z * math.cos(rads)
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
-
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
@@ -219,7 +230,7 @@ class Object:
     # by 'degrees', assuming the object is centered at the origin.  The rotation is CW
     # in a LHS when viewed from +X looking toward the origin.
     def rotateX(self, degrees):
-        rads = math.radians(degrees)
+        rads = float(math.radians(float(degrees)))
         ## Then We Must Translated to 0,0,0 For in Place Scaling
         self.translateToOrigin()
         ## Then We Must Preform a Rotation on All Points
@@ -230,7 +241,7 @@ class Object:
             point[2] = Y * math.sin(rads) + Z * math.cos(rads)
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
-
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
