@@ -27,7 +27,7 @@ class Object:
     def __init__(self, point_cloud, shape):
         self.point_cloud = point_cloud
         self.default_point_cloud = copy.deepcopy(point_cloud)
-        self.temp_visual_center = []
+        self.temp_point_cloud = 0
         self.shape = shape
         Object.all_objects.append(self)
 
@@ -128,35 +128,31 @@ class Object:
         return X_center, Y_center, Z_center
 
     # This functions translates object to origin with respect to its visual center.
-    def translateToOrigin(self):
-        self.temp_visual_center = self.getVisualCenter()
-        ref = self.temp_visual_center
+    def translateToOrigin(self, ori_pos):
         ## Then Translate All Points to New Center Location
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
-            point[0] = X - ref[0]
-            point[1] = Y - ref[1]
-            point[2] = Z - ref[2]
+            point[0] = X - ori_pos[0]
+            point[1] = Y - ori_pos[1]
+            point[2] = Z - ori_pos[2]
 
     # This function translates object back to original location
-    def translateBack(self):
-        ref = self.temp_visual_center
+    def translateBack(self, ori_pos):
         ## Translate All Points to Original Location
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
-            point[0] = X + ref[0]
-            point[1] = Y + ref[1]
-            point[2] = Z + ref[2]
+            point[0] = X + ori_pos[0]
+            point[1] = Y + ori_pos[1]
+            point[2] = Z + ori_pos[2]
 
     # This class function translates an object by some displacement.  The displacement is a 3D
     # vector so the amount of displacement in each dimension can vary.
     def translate(self, displacement):
         ## Added displacement amounts per point of object cloud
         for point in self.point_cloud:
-            X, Y, Z = point[0], point[1], point[2]
-            point[0] = X + displacement[0]
-            point[1] = Y + displacement[1]
-            point[2] = Z - displacement[2]
+            point[0] = point[0] + displacement[0]
+            point[1] = point[1] + displacement[1]
+            point[2] = point[2] - displacement[2]
         
         if DEBUG:
             print(self.getVisualCenter())
@@ -164,15 +160,17 @@ class Object:
     # This function performs a simple uniform scale of an object assuming the object is
     # centered at the origin.  The scalefactor is a scalar.
     def scale(self, scalefactor):
+        ## First We Must Record Original Location
+        original_location = self.getVisualCenter()
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin()
+        self.translateToOrigin(original_location)
         ## Multiplying scalefactor amount with points of object cloud
         for point in self.point_cloud:
             point[0] = point[0] * scalefactor
             point[1] = point[1] * scalefactor
             point[2] = point[2] * scalefactor
         ## Finally We Must Translate Back to Original Location
-        self.translateBack()
+        self.translateBack(original_location)
 
         if DEBUG:
             print(self.getVisualCenter())
@@ -182,8 +180,10 @@ class Object:
     # in a LHS when viewed from -Z [the location of the viewer in the standard postion]
     def rotateZ(self, degrees):
         rads = math.radians(degrees)
+        ## First We Must Record Original Location
+        original_location = self.getVisualCenter()
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin()
+        self.translateToOrigin(original_location)
         ## Then We Must Preform a Rotation on All Points
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
@@ -191,7 +191,7 @@ class Object:
             point[1] = X * math.sin(rads) + Y * math.cos(rads)
             point[2] = Z
         ## Finally We Must Translate Back to Original Location
-        self.translateBack()
+        self.translateBack(original_location)
 
         if DEBUG:
             print(self.getVisualCenter())
@@ -201,8 +201,10 @@ class Object:
     # in a LHS when viewed from +Y looking toward the origin.
     def rotateY(self, degrees):
         rads = math.radians(degrees)
+        ## First We Must Record Original Location
+        original_location = self.getVisualCenter()
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin()
+        self.translateToOrigin(original_location)
         ## Then We Must Preform a Rotation on All Points
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
@@ -210,7 +212,7 @@ class Object:
             point[1] = Y
             point[2] = -X * math.sin(rads) + Z * math.cos(rads)
         ## Finally We Must Translate Back to Original Location
-        self.translateBack()
+        self.translateBack(original_location)
 
         if DEBUG:
             print(self.getVisualCenter())
@@ -220,8 +222,10 @@ class Object:
     # in a LHS when viewed from +X looking toward the origin.
     def rotateX(self, degrees):
         rads = math.radians(degrees)
+        ## First We Must Record Original Location
+        original_location = self.getVisualCenter()
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin()
+        self.translateToOrigin(original_location)
         ## Then We Must Preform a Rotation on All Points
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
@@ -229,7 +233,7 @@ class Object:
             point[1] = Y * math.cos(rads) - Z * math.sin(rads)
             point[2] = Y * math.sin(rads) + Z * math.cos(rads)
         ## Finally We Must Translate Back to Original Location
-        self.translateBack()
+        self.translateBack(original_location)
 
         if DEBUG:
             print(self.getVisualCenter())
@@ -237,33 +241,24 @@ class Object:
 
 
 # ***************************** Initialize Objects ***************************
-# Definition of the underlying points
+# Definition  of the five underlying points
 ## Pyramid
 py_apex = [0,50,100]
 py_base1 = [50,-50,50]
 py_base2 = [50,-50,150]
 py_base3 = [-50,-50,150]
 py_base4 = [-50,-50,50]
-# Square0
-sq_top0_1 = [-100,50,50]
-sq_top0_2 = [-100,50,150]
-sq_top0_3 = [-200,50,150]
-sq_top0_4 = [-200,50,50]
-sq_base0_1 = [-100,-50,50]
-sq_base0_2 = [-100,-50,150]
-sq_base0_3 = [-200,-50,150]
-sq_base0_4 = [-200,-50,50]
-# Square1
-sq_top1_1 = [200,50,50]
-sq_top1_2 = [200,50,150]
-sq_top1_3 = [100,50,150]
-sq_top1_4 = [100,50,50]
-sq_base1_1 = [200,-50,50]
-sq_base1_2 = [200,-50,150]
-sq_base1_3 = [100,-50,150]
-sq_base1_4 = [100,-50,50]
+# Square
+sq_top0_1 = [50,50,50]
+sq_top0_2 = [50,50,150]
+sq_top0_3 = [-50,50,150]
+sq_top0_4 = [-50,50,50]
+sq_base0_1 = [50,-50,50]
+sq_base0_2 = [50,-50,150]
+sq_base0_3 = [-50,-50,150]
+sq_base0_4 = [-50,-50,50]
 
-# Definition of polygon faces using the meaningful point names
+# Definition of the five polygon faces using the meaningful point names
 # Polys are defined in clockwise order when viewed from the outside
 # Pyramid
 py_frontpoly = [py_apex, py_base1, py_base4]
@@ -278,53 +273,30 @@ sq_frontpoly0 = [sq_top0_1, sq_base0_1, sq_base0_4, sq_top0_4]
 sq_backpoly0 = [sq_top0_2, sq_base0_2, sq_base0_3, sq_top0_3]
 sq_rightpoly0 = [sq_top0_2, sq_base0_2, sq_base0_1, sq_top0_1]
 sq_leftpoly0 = [sq_top0_4, sq_base0_4, sq_base0_3, sq_top0_3]
-# Square1
-sq_bottompoly1 = [sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
-sq_toppoly1 = [sq_top1_1, sq_top1_2, sq_top1_3, sq_top1_4]
-sq_frontpoly1 = [sq_top1_1, sq_base1_1, sq_base1_4, sq_top1_4]
-sq_backpoly1 = [sq_top1_2, sq_base1_2, sq_base1_3, sq_top1_3]
-sq_rightpoly1 = [sq_top1_2, sq_base1_2, sq_base1_1, sq_top1_1]
-sq_leftpoly1 = [sq_top1_4, sq_base1_4, sq_base1_3, sq_top1_3]
 
 
-# Definition of the objects
+# Definition of the object
 pyramid = [py_bottompoly, py_frontpoly, py_rightpoly, py_backpoly, py_leftpoly]
-square0 = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
-square1 = [sq_bottompoly1, sq_toppoly1, sq_frontpoly1, sq_backpoly1, sq_rightpoly1, sq_leftpoly1]
+square = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
 
-# Definition of the objects' underlying point cloud.  No structure, just the points.
+# Definition of the Pyramid's underlying point cloud.  No structure, just the points.
 pyramid_point_cloud = [py_apex, py_base1, py_base2, py_base3, py_base4]
 square0_point_cloud = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4, sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
-square1_point_cloud = [sq_top1_1, sq_top1_2, sq_top1_3, sq_top1_4, sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
 
-# Creating Object object
+Square0 = Object(square0_point_cloud, square)
 Pyramid = Object(pyramid_point_cloud, pyramid)
-Square0 = Object(square0_point_cloud, square0)
-Square1 = Object(square1_point_cloud, square1)
+
+
+# object = Square0
+object = Pyramid
 
 #************************************************************************************
 
-#### OBJECT SELECTOR ####
-# Starting Object
-object = Square0
-curr = 1    # curr object index
-# This function is used to select an object with the arrow keys.
-def selector(direction):
-    # Calling Global Vars
-    global object
-    global curr
-    # Adding or Subtracting from Index Depending on Arrow Direction
-    curr += direction
-    # Modulo to Allow Object Selection Cycling
-    curr %= len(Object.all_objects)
-    # Sets "object" to selector object in object list
-    object = Object.all_objects[curr]
-
-# Detects Keys and Changes Selector
-def left_key(event):
-    selector(1)
-def right_key(event):
-    selector(-1)
+# This function resets the pyramid to its original size and location in 3D space
+# Note that you have to be careful to update the values in the existing PyramidPointCloud
+# structure rather than creating a new structure or just switching a pointer.  In other
+# words, you'll need manually update the value of every x, y, and z of every point in
+# point cloud (vertex list).
 
 # **************************************************************************
 # Everything below this point implements the interface
@@ -404,13 +376,9 @@ def zMinus():
     Object.drawAllObjects()
 
 
-
 root = Tk()
 outerframe = Frame(root)
 outerframe.pack()
-
-root.bind("<Right>", right_key)
-root.bind("<Left>", left_key)
 
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
 Object.drawAllObjects()
@@ -487,6 +455,5 @@ zPlusButton.pack(side=LEFT)
 
 zMinusButton = Button(rotationcontrols, text="Z-", command=zMinus)
 zMinusButton.pack(side=LEFT)
-
 
 root.mainloop()

@@ -18,11 +18,6 @@ d = 500
 
 DEBUG = True
 
-
-
-
-
-
 # ***************************** Initialize Pyramid Object ***************************
 # Definition  of the five underlying points
 # apex = [0,50,100]
