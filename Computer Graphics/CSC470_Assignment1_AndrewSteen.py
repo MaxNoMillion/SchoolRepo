@@ -30,31 +30,32 @@ class Object:
         self.default_point_cloud = copy.deepcopy(point_cloud)       # Making deepCopy for resetting
         self.temp_visual_center = []                                # For inPlace rotation and scaling
         self.shape = shape
+        self.isSelected = False
         Object.all_objects.append(self)                             # Adds objects to list
 
     # This class function draws all objects
     def drawAllObjects():
         # Calls drawObject function on each object in all_objects
         for object in Object.all_objects:
-            Object.drawObject(object)
+            object.drawObject()
 
     # This class function will draw an object by repeatedly callying drawPoly on each polygon in the object
     def drawObject(self):
         ## Draws each polygon of object
         for poly in self.shape:
-            Object.drawPoly(poly)
+            self.drawPoly(poly)
 
     # This class function will draw a polygon by repeatedly callying drawLine on each pair of points
     # making up the object.  Remember to draw a line between the last point and the first.
-    def drawPoly(poly):
+    def drawPoly(self, poly):
         ## Drawing Every Line in Poly
         for i in range(-1, len(poly) - 1, 1):
-            Object.drawLine(poly[i], poly[i+1])
+            self.drawLine(poly[i], poly[i+1])
 
     # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
     # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
     # draw the actual line using the built-in create_line method
-    def drawLine(start,end):
+    def drawLine(self, start,end):
         # Initiallize coord vectors
         start_sp = []
         start_display = []
@@ -68,7 +69,10 @@ class Object:
         end_sp = Object.project(end)
         end_display = Object.convertToDisplayCoordinates(end_sp)
         # Tkinter function to draw line on window
-        w.create_line(start_display[0],start_display[1],end_display[0],end_display[1])
+        if (self.isSelected):
+            w.create_line(start_display[0],start_display[1],end_display[0],end_display[1], fill='red')
+        else:
+            w.create_line(start_display[0],start_display[1],end_display[0],end_display[1])
 
     # This class function converts from 3D to 2D (+ depth) using the perspective projection technique.  Note that it
     # will return a NEW list of points.  We will not want to keep around the projected points in our object as
@@ -322,12 +326,18 @@ def selector(direction):
     # Calling Global Vars
     global object
     global curr
+    # For selection detection (Color)
+    object.isSelected = False
     # Adding or Subtracting from Index Depending on Arrow Direction
     curr += direction
     # Modulo to Allow Object Selection Cycling
     curr %= len(Object.all_objects)
     # Sets "object" to selector object in object list
     object = Object.all_objects[curr]
+    # For selection detection (Color)
+    object.isSelected = True
+    # Redraw objects
+    Object.drawAllObjects()
 
 # Detects Keys and Changes Selector
 def left_key(event):
@@ -413,14 +423,13 @@ def zMinus():
     Object.drawAllObjects()
 
 #*******************************************************************************#
-
+object.isSelected = True
 root = Tk()
 outerframe = Frame(root)
 outerframe.pack()
 
 root.bind("<Right>", right_key)
 root.bind("<Left>", left_key)
-
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
 Object.drawAllObjects()
 w.pack()
