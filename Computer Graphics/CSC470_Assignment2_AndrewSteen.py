@@ -16,48 +16,82 @@ CanvasWidth = 400
 CanvasHeight = 400
 d = 500
 
-DEBUG = True
+# Debug Toggle
+DEBUG = False
 
-
+# Object class to make adding shapes easier
 class Object:
     ## Contains All Objects in Scene
     all_objects = []
 
     ## Constructor for Object Class
-    def __init__(self, point_cloud, shape):
+    def __init__(self, point_cloud, shape, color):
         self.point_cloud = point_cloud
-        self.default_point_cloud = copy.deepcopy(point_cloud)
-        self.temp_point_cloud = 0
+        self.default_point_cloud = copy.deepcopy(point_cloud)       # Making deepCopy for resetting
+        self.temp_visual_center = []                                # For inPlace rotation and scaling
         self.shape = shape
-        Object.all_objects.append(self)
+        self.color = color
+        self.isSelected = False
+        Object.all_objects.append(self)                             # Adds objects to list
 
     # This class function draws all objects
     def drawAllObjects():
+        # Calls drawObject function on each object in all_objects
         for object in Object.all_objects:
-            Object.drawObject(object)
+            object.drawObject()
 
     # This class function will draw an object by repeatedly callying drawPoly on each polygon in the object
     def drawObject(self):
-        ## Drawing Every Poly in Object
+        # ## Draws each polygon of object
+        # for poly in self.shape:
+        #     if (visual_mode != 1):
+        #         if (self.isFaceShowing(poly)):
+        #             self.drawPolyWire(poly)
+        #     else:
+        #         self.drawPolyWire(poly)
+        
+        ## Draws each polygon of object
+        i = 0
         for poly in self.shape:
-            Object.drawPoly(poly)
+            if (visual_mode == 1):
+                self.drawPolyWire(poly)
+            elif (visual_mode == 2):
+                self.drawPolyWire(poly)
+                self.polygonFill(poly, self.color[i])
+            else:
+                self.polygonFill(poly, self.color[i])
 
     # This class function will draw a polygon by repeatedly callying drawLine on each pair of points
     # making up the object.  Remember to draw a line between the last point and the first.
-    def drawPoly(poly):
+    def drawPolyWire(self, poly):
         ## Drawing Every Line in Poly
         for i in range(-1, len(poly) - 1, 1):
-            Object.drawLine(poly[i], poly[i+1])
+            if (visual_mode != 1):
+                if (isFaceShowing(poly)):
+                    self.drawLine(poly[i], poly[i+1])
+            else:
+                self.drawLine(poly[i], poly[i+1])
+    
+    def polygonFill(self, poly, color):
+        # Dont need to fill if ya cant see it
+        if (not isFaceShowing(poly)):
+            return
+        
+        display_poly = projectAndConvertToDisplay(poly)
+
+        print(display_poly)
+        #edge_table = computeEdgeTable(display_poly)
+        
 
     # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
     # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
     # draw the actual line using the built-in create_line method
-    def drawLine(start,end):
+    def drawLine(self, start, end):
+        # Initiallize coord vectors
         start_sp = []
         start_display = []
         end_sp = []
         end_display = []
-
         ## First We Must Convert Spacial Coords to Projected Coords ##
         ## And Then Convert From Prejected Coords to Display Coords ##
             # We must convert both start and end points
@@ -65,7 +99,11 @@ class Object:
         start_display = Object.convertToDisplayCoordinates(start_sp)
         end_sp = Object.project(end)
         end_display = Object.convertToDisplayCoordinates(end_sp)
-        w.create_line(start_display[0],start_display[1],end_display[0],end_display[1])
+        # Tkinter function to draw line on window
+        if (self.isSelected):
+            w.create_line(start_display[0],start_display[1],end_display[0],end_display[1], fill='red')
+        else:
+            w.create_line(start_display[0],start_display[1],end_display[0],end_display[1])
 
     # This class function converts from 3D to 2D (+ depth) using the perspective projection technique.  Note that it
     # will return a NEW list of points.  We will not want to keep around the projected points in our object as
@@ -89,36 +127,40 @@ class Object:
         displayXY.append(CanvasHeight/2 - point[1])
         ## Return coord of display point
         return displayXY
-
+    
     # This class function resets object to its original position
     def resetObject(self):
+        # Resets all points of object to original location
         for i in range (len(self.point_cloud)):
             for j in range(3):
                 self.point_cloud[i][j] = self.default_point_cloud[i][j]
 
     # This class function resets entire scene
     def resetScene():
+        # Calls resetObject function on each object in all_objects
         for object in Object.all_objects:
             object.resetObject()
 
     # This class functions calculates visual center of object
     def getVisualCenter(self):
         ## First We Must Find Visual Center ##
-        # Getting bounds
-        X_min, X_max, Y_min, Y_max, Z_min, Z_max = 0, 0, 0, 0, 0, 0
+        # Initiallizing min and max values
+        X_min, X_max, Y_min, Y_max, Z_min, Z_max = float('inf'), float('-inf'), float('inf'), float('-inf'), float('inf'), float('-inf')
+        # Looping through points in the objects' point clouds
         for point in self.point_cloud:
+            # Decoupling
             X, Y, Z = point[0], point[1], point[2]
-            if X < X_min:
+            if X < X_min:       # Getting min X
                 X_min = X
-            if X > X_max:
+            if X > X_max:       # Getting max X
                 X_max = X
-            if Y < Y_min:
+            if Y < Y_min:       # Getting min Y
                 Y_min = Y
-            if Y > Y_max:
+            if Y > Y_max:       # Getting max Y
                 Y_max = Y
-            if Z < Z_min:
+            if Z < Z_min:       # Getting min Z
                 Z_min = Z
-            if Z > Z_max:
+            if Z > Z_max:       # Getting max Z
                 Z_max = Z
         ## Using Max and Min Values to Calc Visual Center
         X_center = (X_max + X_min) / 2
@@ -128,50 +170,55 @@ class Object:
         return X_center, Y_center, Z_center
 
     # This functions translates object to origin with respect to its visual center.
-    def translateToOrigin(self, ori_pos):
+    def translateToOrigin(self):
+        # Saves current visual center into temp var
+        self.temp_visual_center = self.getVisualCenter()
+        ref = self.temp_visual_center   # Set to ref to ease the mind
         ## Then Translate All Points to New Center Location
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
-            point[0] = X - ori_pos[0]
-            point[1] = Y - ori_pos[1]
-            point[2] = Z - ori_pos[2]
+            point[0] = X - ref[0]
+            point[1] = Y - ref[1]
+            point[2] = Z - ref[2]
 
     # This function translates object back to original location
-    def translateBack(self, ori_pos):
+    def translateBack(self):
+        # Setting ref to previous visual center
+        ref = self.temp_visual_center
         ## Translate All Points to Original Location
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
-            point[0] = X + ori_pos[0]
-            point[1] = Y + ori_pos[1]
-            point[2] = Z + ori_pos[2]
+            point[0] = X + ref[0]
+            point[1] = Y + ref[1]
+            point[2] = Z + ref[2]
 
     # This class function translates an object by some displacement.  The displacement is a 3D
     # vector so the amount of displacement in each dimension can vary.
     def translate(self, displacement):
         ## Added displacement amounts per point of object cloud
         for point in self.point_cloud:
-            point[0] = point[0] + displacement[0]
-            point[1] = point[1] + displacement[1]
-            point[2] = point[2] - displacement[2]
-        
+            X, Y, Z = point[0], point[1], point[2]
+            point[0] = X + displacement[0]
+            point[1] = Y + displacement[1]
+            point[2] = Z - displacement[2]
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
     # This function performs a simple uniform scale of an object assuming the object is
     # centered at the origin.  The scalefactor is a scalar.
     def scale(self, scalefactor):
-        ## First We Must Record Original Location
-        original_location = self.getVisualCenter()
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin(original_location)
+        self.translateToOrigin()
+        #print(self.getVisualCenter())
         ## Multiplying scalefactor amount with points of object cloud
         for point in self.point_cloud:
             point[0] = point[0] * scalefactor
             point[1] = point[1] * scalefactor
             point[2] = point[2] * scalefactor
         ## Finally We Must Translate Back to Original Location
-        self.translateBack(original_location)
-
+        self.translateBack()
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
@@ -179,11 +226,9 @@ class Object:
     # by 'degrees', assuming the object is centered at the origin.  The rotation is CCW
     # in a LHS when viewed from -Z [the location of the viewer in the standard postion]
     def rotateZ(self, degrees):
-        rads = math.radians(degrees)
-        ## First We Must Record Original Location
-        original_location = self.getVisualCenter()
+        rads = float(math.radians(float(degrees)))
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin(original_location)
+        self.translateToOrigin()
         ## Then We Must Preform a Rotation on All Points
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
@@ -191,8 +236,8 @@ class Object:
             point[1] = X * math.sin(rads) + Y * math.cos(rads)
             point[2] = Z
         ## Finally We Must Translate Back to Original Location
-        self.translateBack(original_location)
-
+        self.translateBack()
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
@@ -200,11 +245,9 @@ class Object:
     # by 'degrees', assuming the object is centered at the origin.  The rotation is CW
     # in a LHS when viewed from +Y looking toward the origin.
     def rotateY(self, degrees):
-        rads = math.radians(degrees)
-        ## First We Must Record Original Location
-        original_location = self.getVisualCenter()
+        rads = float(math.radians(float(degrees)))
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin(original_location)
+        self.translateToOrigin()
         ## Then We Must Preform a Rotation on All Points
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
@@ -212,8 +255,8 @@ class Object:
             point[1] = Y
             point[2] = -X * math.sin(rads) + Z * math.cos(rads)
         ## Finally We Must Translate Back to Original Location
-        self.translateBack(original_location)
-
+        self.translateBack()
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
 
@@ -221,11 +264,9 @@ class Object:
     # by 'degrees', assuming the object is centered at the origin.  The rotation is CW
     # in a LHS when viewed from +X looking toward the origin.
     def rotateX(self, degrees):
-        rads = math.radians(degrees)
-        ## First We Must Record Original Location
-        original_location = self.getVisualCenter()
+        rads = float(math.radians(float(degrees)))
         ## Then We Must Translated to 0,0,0 For in Place Scaling
-        self.translateToOrigin(original_location)
+        self.translateToOrigin()
         ## Then We Must Preform a Rotation on All Points
         for point in self.point_cloud:
             X, Y, Z = point[0], point[1], point[2]
@@ -233,32 +274,90 @@ class Object:
             point[1] = Y * math.cos(rads) - Z * math.sin(rads)
             point[2] = Y * math.sin(rads) + Z * math.cos(rads)
         ## Finally We Must Translate Back to Original Location
-        self.translateBack(original_location)
-
+        self.translateBack()
+        # DEBUG print object location
         if DEBUG:
             print(self.getVisualCenter())
+
+# ***************************** NON-Class Functions ***************************
+
+# This function normalizes desired vector
+def normalize(vec):
+    Nx, Ny, Nz = vec[0], vec[1], vec[2]
+    return [Nx / math.sqrt(Nx*Nx + Ny*Ny + Nz*Nz), Ny / math.sqrt(Nx*Nx + Ny*Ny + Nz*Nz), Nz / math.sqrt(Nx*Nx + Ny*Ny + Nz*Nz),]
+
+# This function is to determine whether or not a polygon should be back face culled
+def isFaceShowing(poly):
+    P0, P1, P2 = poly[0], poly[1], poly[2]
+    P = getVector(P0, P1) 
+    Q = getVector(P0, P2) 
+    # To make code more clear.
+    Px, Py, Pz = P[0], P[1], P[2]
+    Qx, Qy, Qz = Q[0], Q[1], Q[2]
+    # Getting normal vector (No Normalization)
+    N = [Py*Qz - Pz*Qy, Pz*Qx - Px*Qz, Px*Qy - Py*Qx]
+    # Normalizing normal vector
+    N_norm = normalize(N);
+
+    # Now we must compute offset plane
+    D = N_norm[0]*P0[0] + N_norm[1]*P0[1] + N_norm[2]*P0[2]
+
+    # Now, finally, we determine if the polygon is visable from view point
+    V = [0, 0, -d]
+    if ((N_norm[0]*V[0] + N_norm[1]*V[1] + N_norm[2]*V[2] - D) > 0):
+        return True
+    else:
+        return False
+
+# This function returns vector from given final and initial points
+def getVector(int, fin):
+    return [fin[0] - int[0], fin[1] - int[1], fin[2] - int[2]]
+
+def projectAndConvertToDisplay(poly):
+    pro_point = []
+    display_points = []
+    for i in range(len(poly)):
+        pro_point.append(Object.project(poly[i]))
+    for i in range(len(pro_point)):
+        display_points.append(Object.convertToDisplayCoordinates(pro_point[i]))
+        display_points[i][0] = round(display_points[i][0])
+        display_points[i][1] = round(display_points[i][1])
+    return display_points
+
+def computeEdgeTable(display_points):
+    edge_table = {}
+
 
 
 
 # ***************************** Initialize Objects ***************************
-# Definition  of the five underlying points
+# Definition of the underlying points
 ## Pyramid
 py_apex = [0,50,100]
 py_base1 = [50,-50,50]
 py_base2 = [50,-50,150]
 py_base3 = [-50,-50,150]
 py_base4 = [-50,-50,50]
-# Square
-sq_top0_1 = [50,50,50]
-sq_top0_2 = [50,50,150]
-sq_top0_3 = [-50,50,150]
-sq_top0_4 = [-50,50,50]
-sq_base0_1 = [50,-50,50]
-sq_base0_2 = [50,-50,150]
-sq_base0_3 = [-50,-50,150]
-sq_base0_4 = [-50,-50,50]
+# Square0
+sq_top0_1 = [-100,50,50]
+sq_top0_2 = [-100,50,150]
+sq_top0_3 = [-200,50,150]
+sq_top0_4 = [-200,50,50]
+sq_base0_1 = [-100,-50,50]
+sq_base0_2 = [-100,-50,150]
+sq_base0_3 = [-200,-50,150]
+sq_base0_4 = [-200,-50,50]
+# Square1
+sq_top1_1 = [200,50,50]
+sq_top1_2 = [200,50,150]
+sq_top1_3 = [100,50,150]
+sq_top1_4 = [100,50,50]
+sq_base1_1 = [200,-50,50]
+sq_base1_2 = [200,-50,150]
+sq_base1_3 = [100,-50,150]
+sq_base1_4 = [100,-50,50]
 
-# Definition of the five polygon faces using the meaningful point names
+# Definition of polygon faces using the meaningful point names
 # Polys are defined in clockwise order when viewed from the outside
 # Pyramid
 py_frontpoly = [py_apex, py_base1, py_base4]
@@ -268,35 +367,90 @@ py_leftpoly = [py_apex, py_base4, py_base3]
 py_bottompoly = [py_base1, py_base2, py_base3, py_base4]
 # Square0
 sq_bottompoly0 = [sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
-sq_toppoly0 = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4]
+sq_toppoly0 = [sq_top0_2, sq_top0_1, sq_top0_4, sq_top0_3]
 sq_frontpoly0 = [sq_top0_1, sq_base0_1, sq_base0_4, sq_top0_4]
-sq_backpoly0 = [sq_top0_2, sq_base0_2, sq_base0_3, sq_top0_3]
+sq_backpoly0 = [sq_top0_3, sq_base0_3, sq_base0_2, sq_top0_2]
 sq_rightpoly0 = [sq_top0_2, sq_base0_2, sq_base0_1, sq_top0_1]
 sq_leftpoly0 = [sq_top0_4, sq_base0_4, sq_base0_3, sq_top0_3]
+# Square1
+sq_bottompoly1 = [sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
+sq_toppoly1 = [sq_top1_2, sq_top1_1, sq_top1_4, sq_top1_3]
+sq_frontpoly1 = [sq_top1_1, sq_base1_1, sq_base1_4, sq_top1_4]
+sq_backpoly1 = [sq_top1_3, sq_base1_3, sq_base1_2, sq_top1_2]
+sq_rightpoly1 = [sq_top1_2, sq_base1_2, sq_base1_1, sq_top1_1]
+sq_leftpoly1 = [sq_top1_4, sq_base1_4, sq_base1_3, sq_top1_3]
 
 
-# Definition of the object
+# Definition of the objects
 pyramid = [py_bottompoly, py_frontpoly, py_rightpoly, py_backpoly, py_leftpoly]
-square = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
+square0 = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
+square1 = [sq_bottompoly1, sq_toppoly1, sq_frontpoly1, sq_backpoly1, sq_rightpoly1, sq_leftpoly1]
 
-# Definition of the Pyramid's underlying point cloud.  No structure, just the points.
+# Polygon Colors
+pyramid_colors = ["black", "red", "green", "blue", "yellow"]
+square_colors0 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
+square_colors1 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
+
+# Definition of the objects' underlying point cloud.  No structure, just the points.
 pyramid_point_cloud = [py_apex, py_base1, py_base2, py_base3, py_base4]
 square0_point_cloud = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4, sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
+square1_point_cloud = [sq_top1_1, sq_top1_2, sq_top1_3, sq_top1_4, sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
 
-Square0 = Object(square0_point_cloud, square)
-Pyramid = Object(pyramid_point_cloud, pyramid)
-
-
-# object = Square0
-object = Pyramid
+# Creating Object object
+Pyramid = Object(pyramid_point_cloud, pyramid, pyramid_colors)
+Square0 = Object(square0_point_cloud, square0, square_colors0)
+Square1 = Object(square1_point_cloud, square1, square_colors1)
 
 #************************************************************************************
 
-# This function resets the pyramid to its original size and location in 3D space
-# Note that you have to be careful to update the values in the existing PyramidPointCloud
-# structure rather than creating a new structure or just switching a pointer.  In other
-# words, you'll need manually update the value of every x, y, and z of every point in
-# point cloud (vertex list).
+#### OBJECT SELECTOR ####
+# Starting Object
+object = Square0
+curr = 1    # curr object index
+# This function is used to select an object with the arrow keys.
+def selector(direction):
+    # Calling Global Vars
+    global object
+    global curr
+    # For selection detection (Color)
+    object.isSelected = False
+    # Adding or Subtracting from Index Depending on Arrow Direction
+    curr += direction
+    # Modulo to Allow Object Selection Cycling
+    curr %= len(Object.all_objects)
+    # Sets "object" to selector object in object list
+    object = Object.all_objects[curr]
+    # For selection detection (Color)
+    object.isSelected = True
+    # Redraw objects
+    Object.drawAllObjects()
+
+# Detects Keys and Changes Selector
+def left_key(event):
+    selector(1)
+def right_key(event):
+    selector(-1)
+
+# Visual mode selection.
+visual_mode = 1
+def num_1(event):
+    global visual_mode
+    w.delete(ALL)
+    visual_mode = 1
+    # Redraw objects
+    Object.drawAllObjects()
+def num_2(event):
+    global visual_mode
+    w.delete(ALL)
+    visual_mode = 2
+    # Redraw objects
+    Object.drawAllObjects()
+def num_3(event):
+    global visual_mode
+    w.delete(ALL)
+    visual_mode = 3
+    # Redraw objects
+    Object.drawAllObjects()
 
 # **************************************************************************
 # Everything below this point implements the interface
@@ -375,11 +529,17 @@ def zMinus():
     object.rotateZ(-5)
     Object.drawAllObjects()
 
-
+#*******************************************************************************#
+object.isSelected = True
 root = Tk()
 outerframe = Frame(root)
 outerframe.pack()
 
+root.bind("<Right>", right_key)
+root.bind("<Left>", left_key)
+root.bind("1", num_1)
+root.bind("2", num_2)
+root.bind("3", num_3)
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
 Object.drawAllObjects()
 w.pack()
@@ -455,5 +615,6 @@ zPlusButton.pack(side=LEFT)
 
 zMinusButton = Button(rotationcontrols, text="Z-", command=zMinus)
 zMinusButton.pack(side=LEFT)
+
 
 root.mainloop()
