@@ -17,7 +17,8 @@ CanvasHeight = 400
 d = 500
 
 # Debug Toggle
-DEBUG = False
+DEBUG_POS = False
+DEBUG_EDGE = True
 
 # Object class to make adding shapes easier
 class Object:
@@ -47,21 +48,10 @@ class Object:
             if (visual_mode == 1):
                 self.drawPolyWire(poly[i])
             elif (visual_mode == 2):
-                self.drawPolyWire(poly[i])
                 self.polygonFill(poly[i], self.color[i])
+                self.drawPolyWire(poly[i])
             else:
                 self.polygonFill(poly[i], self.color[i])
-
-
-        # i = 0
-        # for poly in self.shape:
-        #     if (visual_mode == 1):
-        #         self.drawPolyWire(poly)
-        #     elif (visual_mode == 2):
-        #         self.drawPolyWire(poly)
-        #         self.polygonFill(poly, self.color[i])
-        #     else:
-        #         self.polygonFill(poly, self.color[i])
 
     # This class function will draw a polygon by repeatedly callying drawLine on each pair of points
     # making up the object.  Remember to draw a line between the last point and the first.
@@ -84,6 +74,10 @@ class Object:
 
         # Precompute edge_table: Xstart, Ystart, Yend, dX
         edge_table = computeEdgeTable(display_poly)
+        ############## Edges are not in correct order ################
+
+        if DEBUG_EDGE:
+            print(edge_table)
 
         # If too small to draw
         if edge_table == []:
@@ -97,7 +91,7 @@ class Object:
         edge_iX = edge_table[i][0]
         edge_jX = edge_table[j][0]
 
-        for y in range(first_fill_line, last_fill_line + 1):
+        for y in range(first_fill_line, last_fill_line):
             if (edge_iX < edge_jX):
                 LeftX = edge_iX
                 RightX = edge_jX
@@ -105,7 +99,7 @@ class Object:
                 LeftX = edge_jX
                 RightX = edge_iX
             
-            for x in range(round(LeftX), round(RightX) + 1):
+            for x in range(round(LeftX), round(RightX)):
                 w.create_line(x, y, x+1,y,fill=color)
 
             edge_iX = edge_iX + edge_table[i][3]
@@ -240,7 +234,7 @@ class Object:
             point[1] = Y + displacement[1]
             point[2] = Z - displacement[2]
         # DEBUG print object location
-        if DEBUG:
+        if DEBUG_POS:
             print(self.getVisualCenter())
 
     # This function performs a simple uniform scale of an object assuming the object is
@@ -257,7 +251,7 @@ class Object:
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
         # DEBUG print object location
-        if DEBUG:
+        if DEBUG_POS:
             print(self.getVisualCenter())
 
     # This function performs a rotation of an object about the Z axis (from +X to +Y)
@@ -276,7 +270,7 @@ class Object:
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
         # DEBUG print object location
-        if DEBUG:
+        if DEBUG_POS:
             print(self.getVisualCenter())
 
     # This function performs a rotation of an object about the Y axis (from +Z to +X)
@@ -295,7 +289,7 @@ class Object:
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
         # DEBUG print object location
-        if DEBUG:
+        if DEBUG_POS:
             print(self.getVisualCenter())
 
     # This function performs a rotation of an object about the X axis (from +Y to +Z)
@@ -314,7 +308,7 @@ class Object:
         ## Finally We Must Translate Back to Original Location
         self.translateBack()
         # DEBUG print object location
-        if DEBUG:
+        if DEBUG_POS:
             print(self.getVisualCenter())
 
 # ***************************** NON-Class Functions ***************************
