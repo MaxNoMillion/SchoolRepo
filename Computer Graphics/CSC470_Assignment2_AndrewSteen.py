@@ -358,8 +358,8 @@ def projectAndConvertToDisplay(poly):
         pro_point.append(Object.project(poly[i]))
     for i in range(len(pro_point)):
         display_points.append(Object.convertToDisplayCoordinates(pro_point[i]))
-        display_points[i][0] = display_points[i][0]
-        display_points[i][1] = display_points[i][1]
+        # display_points[i][0] = display_points[i][0]
+        # display_points[i][1] = display_points[i][1]
     return display_points
 
 def computeEdgeTable(display_points):
