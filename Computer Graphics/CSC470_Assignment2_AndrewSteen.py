@@ -42,24 +42,26 @@ class Object:
 
     # This class function will draw an object by repeatedly callying drawPoly on each polygon in the object
     def drawObject(self):
-        # ## Draws each polygon of object
-        # for poly in self.shape:
-        #     if (visual_mode != 1):
-        #         if (self.isFaceShowing(poly)):
-        #             self.drawPolyWire(poly)
-        #     else:
-        #         self.drawPolyWire(poly)
-        
-        ## Draws each polygon of object
-        i = 0
-        for poly in self.shape:
+        poly = self.shape
+        for i in range(len(poly)):
             if (visual_mode == 1):
-                self.drawPolyWire(poly)
+                self.drawPolyWire(poly[i])
             elif (visual_mode == 2):
-                self.drawPolyWire(poly)
-                self.polygonFill(poly, self.color[i])
+                self.drawPolyWire(poly[i])
+                self.polygonFill(poly[i], self.color[i])
             else:
-                self.polygonFill(poly, self.color[i])
+                self.polygonFill(poly[i], self.color[i])
+
+
+        # i = 0
+        # for poly in self.shape:
+        #     if (visual_mode == 1):
+        #         self.drawPolyWire(poly)
+        #     elif (visual_mode == 2):
+        #         self.drawPolyWire(poly)
+        #         self.polygonFill(poly, self.color[i])
+        #     else:
+        #         self.polygonFill(poly, self.color[i])
 
     # This class function will draw a polygon by repeatedly callying drawLine on each pair of points
     # making up the object.  Remember to draw a line between the last point and the first.
@@ -77,11 +79,47 @@ class Object:
         if (not isFaceShowing(poly)):
             return
         
+        # Convert polygon to display coords
         display_poly = projectAndConvertToDisplay(poly)
 
-        print(display_poly)
-        #edge_table = computeEdgeTable(display_poly)
-        
+        # Precompute edge_table: Xstart, Ystart, Yend, dX
+        edge_table = computeEdgeTable(display_poly)
+
+        # If too small to draw
+        if edge_table == []:
+            return
+
+        first_fill_line = round(edge_table[0][1]) # lowest Y value
+        last_fill_line = round(edge_table[-1][2]) # highest Y value
+
+        i, j, next = 0, 1, 2
+
+        edge_iX = edge_table[i][0]
+        edge_jX = edge_table[j][0]
+
+        for y in range(first_fill_line, last_fill_line + 1):
+            if (edge_iX < edge_jX):
+                LeftX = edge_iX
+                RightX = edge_jX
+            else:
+                LeftX = edge_jX
+                RightX = edge_iX
+            
+            for x in range(round(LeftX), round(RightX) + 1):
+                w.create_line(x, y, x+1,y,fill=color)
+
+            edge_iX = edge_iX + edge_table[i][3]
+            edge_jX = edge_jX + edge_table[j][3]
+
+            if (y >= edge_table[i][2] and y < last_fill_line):
+                i = next
+                edge_iX = edge_table[i][0]
+                next += 1
+            if (y >= edge_table[j][2] and y < last_fill_line):
+                j = next
+                edge_jX = edge_table[i][0]
+                next += 1
+            
 
     # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
     # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
@@ -320,15 +358,44 @@ def projectAndConvertToDisplay(poly):
         pro_point.append(Object.project(poly[i]))
     for i in range(len(pro_point)):
         display_points.append(Object.convertToDisplayCoordinates(pro_point[i]))
-        display_points[i][0] = round(display_points[i][0])
-        display_points[i][1] = round(display_points[i][1])
+        display_points[i][0] = display_points[i][0]
+        display_points[i][1] = display_points[i][1]
     return display_points
 
 def computeEdgeTable(display_points):
-    edge_table = {}
+    edge_table = []
 
+    # We need a list of edges sorted from lowest starting Y to highest
+    # edges = getEdges(display_points)
+    # edges = orientEdges(edges)
+    # edges = sortEdges(edges)
+    edges = sortEdges(orientEdges(getEdges(display_points)))
 
+    for i in range(len(edges)):
+        Xstart, Ystart, Xend, Yend = edges[i][0][0], edges[i][0][1], edges[i][1][0], edges[i][1][1]
+        try:
+            edge_table.append([Xstart, Ystart, Yend, (Xend - Xstart)/(Yend - Ystart)])
+        except ZeroDivisionError:
+            pass
+    
+    return edge_table
 
+def getEdges(poly):
+    edges = []
+    for i in range(-1, len(poly) - 1, 1):
+        edges.append([poly[i], poly[i+1]])
+    return edges
+
+def orientEdges(edges):
+    for i in range(len(edges)):
+        if edges[i][0][1] > edges[i][1][1]:
+            temp = edges[i][0]
+            edges[i][0] = edges[i][1]
+            edges[i][1] = temp
+    return edges
+
+def sortEdges(edges):
+    return (sorted(edges, key = lambda x: x[0][1]))
 
 # ***************************** Initialize Objects ***************************
 # Definition of the underlying points
