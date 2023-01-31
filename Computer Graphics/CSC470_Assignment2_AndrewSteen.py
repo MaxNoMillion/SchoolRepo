@@ -18,7 +18,8 @@ d = 500
 
 # Debug Toggle
 DEBUG_POS = False
-DEBUG_EDGE = True
+DEBUG_EDGE = False
+Debug_EDGE_BUILD = False
 
 # Object class to make adding shapes easier
 class Object:
@@ -83,15 +84,16 @@ class Object:
         if edge_table == []:
             return
 
-        first_fill_line = round(edge_table[0][1]) # lowest Y value
-        last_fill_line = round(edge_table[-1][2]) # highest Y value
+        first_fill_line = edge_table[0][1] # lowest Y value
+        last_fill_line = max(edge_table, key=lambda x: x[2])[2] # highest Y value
 
         i, j, next = 0, 1, 2
 
         edge_iX = edge_table[i][0]
         edge_jX = edge_table[j][0]
 
-        for y in range(first_fill_line, last_fill_line):
+        for y in range(first_fill_line, last_fill_line + 1):
+            LeftX, RightX = 0, 0
             if (edge_iX < edge_jX):
                 LeftX = edge_iX
                 RightX = edge_jX
@@ -99,7 +101,7 @@ class Object:
                 LeftX = edge_jX
                 RightX = edge_iX
             
-            for x in range(round(LeftX), round(RightX)):
+            for x in range(round(LeftX), round(RightX) + 1):
                 w.create_line(x, y, x+1,y,fill=color)
 
             edge_iX = edge_iX + edge_table[i][3]
@@ -111,7 +113,7 @@ class Object:
                 next += 1
             if (y >= edge_table[j][2] and y < last_fill_line):
                 j = next
-                edge_jX = edge_table[i][0]
+                edge_jX = edge_table[j][0]
                 next += 1
             
 
@@ -352,18 +354,23 @@ def projectAndConvertToDisplay(poly):
         pro_point.append(Object.project(poly[i]))
     for i in range(len(pro_point)):
         display_points.append(Object.convertToDisplayCoordinates(pro_point[i]))
-        # display_points[i][0] = display_points[i][0]
-        # display_points[i][1] = display_points[i][1]
+        display_points[i][0] = round(display_points[i][0])
+        display_points[i][1] = round(display_points[i][1])
     return display_points
 
 def computeEdgeTable(display_points):
     edge_table = []
 
     # We need a list of edges sorted from lowest starting Y to highest
-    # edges = getEdges(display_points)
-    # edges = orientEdges(edges)
-    # edges = sortEdges(edges)
-    edges = sortEdges(orientEdges(getEdges(display_points)))
+    if Debug_EDGE_BUILD:
+        edges = getEdges(display_points)
+        print(edges)
+        edges = orientEdges(edges)
+        print(edges)
+        edges = sortEdges(edges)
+        print(edges)
+    else:
+        edges = sortEdges(orientEdges(getEdges(display_points)))
 
     for i in range(len(edges)):
         Xstart, Ystart, Xend, Yend = edges[i][0][0], edges[i][0][1], edges[i][1][0], edges[i][1][1]
