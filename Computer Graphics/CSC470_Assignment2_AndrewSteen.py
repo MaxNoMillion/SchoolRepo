@@ -25,6 +25,7 @@ Debug_EDGE_BUILD = False
 class Object:
     ## Contains All Objects in Scene
     all_objects = []
+    zBuffer = [[d]*CanvasWidth]*CanvasHeight
 
     ## Constructor for Object Class
     def __init__(self, point_cloud, shape, color):
@@ -38,6 +39,7 @@ class Object:
 
     # This class function draws all objects
     def drawAllObjects():
+        Object.zBuffer = [[d]*CanvasWidth]*CanvasHeight
         # Calls drawObject function on each object in all_objects
         for object in Object.all_objects:
             object.drawObject()
@@ -73,9 +75,8 @@ class Object:
         # Convert polygon to display coords
         display_poly = projectAndConvertToDisplay(poly)
 
-        # Precompute edge_table: Xstart, Ystart, Yend, dX
+        # Precompute edge_table: Xstart, Ystart, Yend, dX, Zstart, dZ
         edge_table = computeEdgeTable(display_poly)
-        ############## Edges are not in correct order ################
 
         if DEBUG_EDGE:
             print(edge_table)
@@ -89,31 +90,46 @@ class Object:
 
         i, j, next = 0, 1, 2
 
-        edge_iX = edge_table[i][0]
-        edge_jX = edge_table[j][0]
+        edge_iX, edge_jX = edge_table[i][0], edge_table[j][0]
+        edge_iZ, edge_jZ = edge_table[i][4], edge_table[j][4]
 
         for y in range(first_fill_line, last_fill_line + 1):
-            LeftX, RightX = 0, 0
+            LeftX, RightX, LeftZ, RightZ = 0, 0, 0, 0
             if (edge_iX < edge_jX):
-                LeftX = edge_iX
-                RightX = edge_jX
+                LeftX, RightX = edge_iX, edge_jX
+                LeftZ, RightZ = edge_iZ, edge_jZ
             else:
-                LeftX = edge_jX
-                RightX = edge_iX
-            
+                LeftX, RightX = edge_jX, edge_iX
+                LeftZ, RightZ = edge_jZ, edge_iZ
+
+            z = LeftZ
+
+            dZFillLine = 0
+            if ((RightX - LeftX) != 0):
+                dZFillLine = (RightZ - LeftZ)/(RightX - LeftX)
+            else:
+                dZFillLine = 0
+
             for x in range(round(LeftX), round(RightX) + 1):
-                w.create_line(x, y, x+1,y,fill=color)
+                if (z < Object.zBuffer[x][y]):
+                    w.create_line(x, y, x+1, y, fill=color)
+                    Object.zBuffer[x][y] = z
+                z = z + dZFillLine
 
             edge_iX = edge_iX + edge_table[i][3]
             edge_jX = edge_jX + edge_table[j][3]
+            edge_iZ = edge_iZ + edge_table[i][5]
+            edge_jZ = edge_jZ + edge_table[j][5]
 
             if (y >= edge_table[i][2] and y < last_fill_line):
                 i = next
                 edge_iX = edge_table[i][0]
+                edge_iZ = edge_table[i][4]
                 next += 1
             if (y >= edge_table[j][2] and y < last_fill_line):
                 j = next
                 edge_jX = edge_table[j][0]
+                edge_jZ = edge_table[j][4]
                 next += 1
             
 
@@ -159,6 +175,7 @@ class Object:
         ## Converting every deminsion of projected point coord into display coord
         displayXY.append(CanvasWidth/2 + point[0])
         displayXY.append(CanvasHeight/2 - point[1])
+        displayXY.append(point[2])
         ## Return coord of display point
         return displayXY
     
@@ -374,8 +391,9 @@ def computeEdgeTable(display_points):
 
     for i in range(len(edges)):
         Xstart, Ystart, Xend, Yend = edges[i][0][0], edges[i][0][1], edges[i][1][0], edges[i][1][1]
+        Zstart, Zend = edges[i][0][2], edges[i][1][2]
         try:
-            edge_table.append([Xstart, Ystart, Yend, (Xend - Xstart)/(Yend - Ystart)])
+            edge_table.append([Xstart, Ystart, Yend, (Xend - Xstart)/(Yend - Ystart), Zstart, (Zend - Zstart)/(Yend - Ystart)])
         except ZeroDivisionError:
             pass
     
