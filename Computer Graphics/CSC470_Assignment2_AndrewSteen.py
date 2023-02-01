@@ -1,11 +1,17 @@
-##########################################################################
-## Name: Andrew Steen                                                   ##
-## SWID: 102-68-080                                                     ##
-## Date: Jan 10 2023                                                    ##
-## Assignment #: 1                                                      ##
-## Program Discription: In-Place 3D Transiformations in a Multi-Object  ##
-##    Environment with Perspective Projection.                          ##
-##########################################################################
+############################################################################
+## Name: Andrew Steen                                                     ##
+## SWID: 102-68-080                                                       ##
+## Date: Feb 02 2023                                                      ##
+## Assignment #: 2                                                        ##
+## Program Discription: In-Place 3D Transiformations in a Multi-Object    ##
+##   Environment with Perspective Projection. Now with backface culling,  ##
+##   polygon filling, and z buffering.                                    ##
+##                                                                        ##
+## Controls:                                                              ##
+## <Left, Right>    Arrow Keys To Cycle Selected Object.                  ##
+## <1, 2, 3>        To Select View Mode.                                  ##
+##                  (Wireframe, Poly Fill w/ Wireframe, and Poly Fill)    ##                                                     
+############################################################################
 
 
 import copy
