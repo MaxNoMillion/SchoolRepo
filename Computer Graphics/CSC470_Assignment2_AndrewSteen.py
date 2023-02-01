@@ -19,27 +19,36 @@ d = 500
 # Debug Toggle
 DEBUG_POS = False
 DEBUG_EDGE = False
-Debug_EDGE_BUILD = False
+DEBUG_EDGE_BUILD = False
+DEBUG_XZ_RL = False
 
 # Object class to make adding shapes easier
 class Object:
     ## Contains All Objects in Scene
     all_objects = []
-    zBuffer = [[d]*CanvasWidth]*CanvasHeight
+    # Selector for Display Mode
+    visual_mode = 1
+    # Initiallizing the zBuffer as a class variable for ease of access
+    zBuffer = [[d for i in range(CanvasWidth)] for j in range(CanvasHeight)]
+    ###############################################################
+    #####   Object.zBuffer = [[d]*CanvasWidth]*CanvasHeight   #####   <--- F*** THIS
+    ###############################################################
 
     ## Constructor for Object Class
     def __init__(self, point_cloud, shape, color):
-        self.point_cloud = point_cloud
+        self.point_cloud = point_cloud                              # List of vertices coords
         self.default_point_cloud = copy.deepcopy(point_cloud)       # Making deepCopy for resetting
         self.temp_visual_center = []                                # For inPlace rotation and scaling
-        self.shape = shape
-        self.color = color
-        self.isSelected = False
+        self.shape = shape                                          # List of polygons
+        self.color = color                                          # List of polygon colors     
+        self.isSelected = False                                     # Toggle for object selection
         Object.all_objects.append(self)                             # Adds objects to list
 
     # This class function draws all objects
     def drawAllObjects():
-        Object.zBuffer = [[d]*CanvasWidth]*CanvasHeight
+        # Reseting zBuffer everytime screen is redrawn
+        Object.zBuffer = [[d for i in range(CanvasWidth)] for j in range(CanvasHeight)]
+
         # Calls drawObject function on each object in all_objects
         for object in Object.all_objects:
             object.drawObject()
@@ -48,12 +57,12 @@ class Object:
     def drawObject(self):
         poly = self.shape
         for i in range(len(poly)):
-            if (visual_mode == 1):
+            if (Object.visual_mode == 1):                          # Draws wire frame
                 self.drawPolyWire(poly[i])
-            elif (visual_mode == 2):
+            elif (Object.visual_mode == 2):                        # Draws filled polygons with wireframe
                 self.polygonFill(poly[i], self.color[i])
                 self.drawPolyWire(poly[i])
-            else:
+            else:                                           # Draws filled polygons
                 self.polygonFill(poly[i], self.color[i])
 
     # This class function will draw a polygon by repeatedly callying drawLine on each pair of points
@@ -61,12 +70,13 @@ class Object:
     def drawPolyWire(self, poly):
         ## Drawing Every Line in Poly
         for i in range(-1, len(poly) - 1, 1):
-            if (visual_mode != 1):
+            if (Object.visual_mode != 1):               # For Backface Culling
                 if (isFaceShowing(poly)):
                     self.drawLine(poly[i], poly[i+1])
             else:
-                self.drawLine(poly[i], poly[i+1])
-    
+                self.drawLine(poly[i], poly[i+1])       # For Wireframe
+
+    # This class fuction will fill each polygon pixel by pixel taking in account z values to fix z fighting   
     def polygonFill(self, poly, color):
         # Dont need to fill if ya cant see it
         if (not isFaceShowing(poly)):
@@ -78,6 +88,7 @@ class Object:
         # Precompute edge_table: Xstart, Ystart, Yend, dX, Zstart, dZ
         edge_table = computeEdgeTable(display_poly)
 
+        # For debuging
         if DEBUG_EDGE:
             print(edge_table)
 
@@ -86,53 +97,70 @@ class Object:
             return
 
         first_fill_line = edge_table[0][1] # lowest Y value
-        last_fill_line = max(edge_table, key=lambda x: x[2])[2] # highest Y value
+        last_fill_line = max(edge_table, key=lambda x: x[2])[2] # Single line maximum fn (find max based on sub-list index)
 
+        # Initiallizing Indices
         i, j, next = 0, 1, 2
 
+        # Initiallizing start and stop edge for X and Z
         edge_iX, edge_jX = edge_table[i][0], edge_table[j][0]
         edge_iZ, edge_jZ = edge_table[i][4], edge_table[j][4]
 
-        for y in range(first_fill_line, last_fill_line + 1):
-            LeftX, RightX, LeftZ, RightZ = 0, 0, 0, 0
+        # Looping through each y line of pixels
+        for y in range(first_fill_line, last_fill_line):
+            LeftX, RightX, LeftZ, RightZ = 0, 0, 0, 0       # Initiallzing and reseting right and left X and Z edge
+            # Insuring the left edge is left of the right edge for X and Z edges
             if (edge_iX < edge_jX):
                 LeftX, RightX = edge_iX, edge_jX
                 LeftZ, RightZ = edge_iZ, edge_jZ
-            else:
+            else:   # Swap if not
                 LeftX, RightX = edge_jX, edge_iX
                 LeftZ, RightZ = edge_jZ, edge_iZ
 
+            # For debugging Right and Left X and Z edge coords
+            if DEBUG_XZ_RL:
+                print("LeftX: ", LeftX, "\tRightX: ", RightX, "LeftZ: ", LeftZ, "\tRightZ: ", RightZ)
+
+            # Initallize z index
             z = LeftZ
 
+            # Getting dZ
             dZFillLine = 0
             if ((RightX - LeftX) != 0):
                 dZFillLine = (RightZ - LeftZ)/(RightX - LeftX)
             else:
                 dZFillLine = 0
 
-            for x in range(round(LeftX), round(RightX) + 1):
+            # Looping through each pixel of current y line
+            for x in range(round(LeftX), round(RightX)):
+                # Checking if current z value should be displayed
                 if (z < Object.zBuffer[x][y]):
+                    # Draw pixel
                     w.create_line(x, y, x+1, y, fill=color)
+                    # Update value in zBuffer
                     Object.zBuffer[x][y] = z
-                z = z + dZFillLine
+                # Index z by dZ
+                z += dZFillLine
 
+            # Index edge points by dX and dZ
             edge_iX = edge_iX + edge_table[i][3]
             edge_jX = edge_jX + edge_table[j][3]
             edge_iZ = edge_iZ + edge_table[i][5]
             edge_jZ = edge_jZ + edge_table[j][5]
 
+            # if at the end of active edge then switch to next edge
             if (y >= edge_table[i][2] and y < last_fill_line):
                 i = next
                 edge_iX = edge_table[i][0]
                 edge_iZ = edge_table[i][4]
                 next += 1
+            # if at the end of active edge then switch to next edge
             if (y >= edge_table[j][2] and y < last_fill_line):
                 j = next
                 edge_jX = edge_table[j][0]
                 edge_jZ = edge_table[j][4]
                 next += 1
             
-
     # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
     # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
     # draw the actual line using the built-in create_line method
@@ -364,22 +392,26 @@ def isFaceShowing(poly):
 def getVector(int, fin):
     return [fin[0] - int[0], fin[1] - int[1], fin[2] - int[2]]
 
+# This function converts all vertices of polygon into display X and Y values as well as Zps values
 def projectAndConvertToDisplay(poly):
     pro_point = []
     display_points = []
+    # Projecting each vertex
     for i in range(len(poly)):
         pro_point.append(Object.project(poly[i]))
+    # Converting X and Y into display coords
     for i in range(len(pro_point)):
         display_points.append(Object.convertToDisplayCoordinates(pro_point[i]))
-        display_points[i][0] = round(display_points[i][0])
+        display_points[i][0] = round(display_points[i][0])  # Rounding X and Y coords
         display_points[i][1] = round(display_points[i][1])
     return display_points
 
+# This function creates an ordered edge table with polygon display points as input
 def computeEdgeTable(display_points):
     edge_table = []
 
     # We need a list of edges sorted from lowest starting Y to highest
-    if Debug_EDGE_BUILD:
+    if DEBUG_EDGE_BUILD:
         edges = getEdges(display_points)
         print(edges)
         edges = orientEdges(edges)
@@ -389,31 +421,42 @@ def computeEdgeTable(display_points):
     else:
         edges = sortEdges(orientEdges(getEdges(display_points)))
 
+    # Now we build edge table from ordered edges
     for i in range(len(edges)):
+        # Relabeling to making code clearer
         Xstart, Ystart, Xend, Yend = edges[i][0][0], edges[i][0][1], edges[i][1][0], edges[i][1][1]
         Zstart, Zend = edges[i][0][2], edges[i][1][2]
+        # Try/Except needed to catch divide by zero errors
         try:
+            # Tries to build edge table
             edge_table.append([Xstart, Ystart, Yend, (Xend - Xstart)/(Yend - Ystart), Zstart, (Zend - Zstart)/(Yend - Ystart)])
         except ZeroDivisionError:
+            # If dX or dZ is Undifined then pass (Edge not added to edge table)
             pass
-    
     return edge_table
 
+# This function finds edges using polygon display points
 def getEdges(poly):
     edges = []
+
+    # Finding edges (Not ordered or oriented)
     for i in range(-1, len(poly) - 1, 1):
         edges.append([poly[i], poly[i+1]])
     return edges
 
+# This function reorients edges that are 180 deg out of phase
 def orientEdges(edges):
+    # Flipping edges with Ystart values that are greater than Yend
     for i in range(len(edges)):
-        if edges[i][0][1] > edges[i][1][1]:
-            temp = edges[i][0]
+        if edges[i][0][1] > edges[i][1][1]:     # If Ystart is greater that Yend
+            temp = edges[i][0]                  # Then flip points
             edges[i][0] = edges[i][1]
             edges[i][1] = temp
     return edges
 
+# This function sorts edges from lowest Y start to highest
 def sortEdges(edges):
+    # Single line sort function that sorts list based of specific sub-list index
     return (sorted(edges, key = lambda x: x[0][1]))
 
 # ***************************** Initialize Objects ***************************
@@ -518,23 +561,20 @@ def right_key(event):
     selector(-1)
 
 # Visual mode selection.
-visual_mode = 1
+#visual_mode = 1
 def num_1(event):
-    global visual_mode
     w.delete(ALL)
-    visual_mode = 1
+    Object.visual_mode = 1
     # Redraw objects
     Object.drawAllObjects()
 def num_2(event):
-    global visual_mode
     w.delete(ALL)
-    visual_mode = 2
+    Object.visual_mode = 2
     # Redraw objects
     Object.drawAllObjects()
 def num_3(event):
-    global visual_mode
     w.delete(ALL)
-    visual_mode = 3
+    Object.visual_mode = 3
     # Redraw objects
     Object.drawAllObjects()
 
