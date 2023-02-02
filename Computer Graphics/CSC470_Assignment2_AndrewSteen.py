@@ -139,14 +139,15 @@ class Object:
 
             # Looping through each pixel of current y line
             for x in range(round(LeftX), round(RightX)):
-                # Checking if current z value should be displayed
-                if (z < Object.zBuffer[x][y]):
-                    # Draw pixel
-                    w.create_line(x, y, x+1, y, fill=color)
-                    # Update value in zBuffer
-                    Object.zBuffer[x][y] = z
-                # Index z by dZ
-                z += dZFillLine
+                if (x < 400 and y < 400):   # offscreen Culling
+                    # Checking if current z value should be displayed
+                    if (z < Object.zBuffer[x][y]):
+                        # Draw pixel
+                        w.create_line(x, y, x+1, y, fill=color)
+                        # Update value in zBuffer
+                        Object.zBuffer[x][y] = z
+                    # Index z by dZ
+                    z += dZFillLine
 
             # Index edge points by dX and dZ
             edge_iX = edge_iX + edge_table[i][3]
@@ -444,7 +445,6 @@ def computeEdgeTable(display_points):
 # This function finds edges using polygon display points
 def getEdges(poly):
     edges = []
-
     # Finding edges (Not ordered or oriented)
     for i in range(-1, len(poly) - 1, 1):
         edges.append([poly[i], poly[i+1]])
