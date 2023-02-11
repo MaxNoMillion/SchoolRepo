@@ -139,7 +139,7 @@ class Object:
 
             # Looping through each pixel of current y line
             for x in range(round(LeftX), round(RightX)):
-                if (x < 400 and y < 400):   # offscreen Culling
+                if (x < 400 and x > 0 and y < 400 and y > 0):   # offscreen Culling
                     # Checking if current z value should be displayed
                     if (z < Object.zBuffer[x][y]):
                         # Draw pixel
