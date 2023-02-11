@@ -474,81 +474,123 @@ def sortEdges(edges):
     return (sorted(edges, key = lambda x: x[0][1]))
 
 # ***************************** Initialize Objects ***************************
-# Definition of the underlying points
-## Pyramid
-py_apex = [0,50,100]
-py_base1 = [50,-50,50]
-py_base2 = [50,-50,150]
-py_base3 = [-50,-50,150]
-py_base4 = [-50,-50,50]
-# Square0
-sq_top0_1 = [-100,50,50]
-sq_top0_2 = [-100,50,150]
-sq_top0_3 = [-200,50,150]
-sq_top0_4 = [-200,50,50]
-sq_base0_1 = [-100,-50,50]
-sq_base0_2 = [-100,-50,150]
-sq_base0_3 = [-200,-50,150]
-sq_base0_4 = [-200,-50,50]
-# Square1
-sq_top1_1 = [200,50,50]
-sq_top1_2 = [200,50,150]
-sq_top1_3 = [100,50,150]
-sq_top1_4 = [100,50,50]
-sq_base1_1 = [200,-50,50]
-sq_base1_2 = [200,-50,150]
-sq_base1_3 = [100,-50,150]
-sq_base1_4 = [100,-50,50]
+# # Defining Pyramid
+# # Coords of Vertices
+# py_apex = [0,50,100]
+# py_base1 = [50,-50,50]
+# py_base2 = [50,-50,150]
+# py_base3 = [-50,-50,150]
+# py_base4 = [-50,-50,50]
+# # Polys defined from points in clockwise order viewed from the outside
+# py_frontpoly = [py_apex, py_base1, py_base4]
+# py_rightpoly = [py_apex, py_base2, py_base1]
+# py_backpoly = [py_apex, py_base3, py_base2]
+# py_leftpoly = [py_apex, py_base4, py_base3]
+# py_bottompoly = [py_base1, py_base2, py_base3, py_base4]
+# # Defining object from group of polys
+# pyramid = [py_bottompoly, py_frontpoly, py_rightpoly, py_backpoly, py_leftpoly]
+# # Creating point cloud of objects vertices
+# pyramid_point_cloud = [py_apex, py_base1, py_base2, py_base3, py_base4]
+# # Setting colors of each poly
+# pyramid_colors = ["black", "red", "green", "blue", "yellow"]
+# # Defining object
+# Pyramid = Object(pyramid_point_cloud, pyramid, pyramid_colors)
 
-# Definition of polygon faces using the meaningful point names
-# Polys are defined in clockwise order when viewed from the outside
-# Pyramid
-py_frontpoly = [py_apex, py_base1, py_base4]
-py_rightpoly = [py_apex, py_base2, py_base1]
-py_backpoly = [py_apex, py_base3, py_base2]
-py_leftpoly = [py_apex, py_base4, py_base3]
-py_bottompoly = [py_base1, py_base2, py_base3, py_base4]
-# Square0
-sq_bottompoly0 = [sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
-sq_toppoly0 = [sq_top0_2, sq_top0_1, sq_top0_4, sq_top0_3]
-sq_frontpoly0 = [sq_top0_1, sq_base0_1, sq_base0_4, sq_top0_4]
-sq_backpoly0 = [sq_top0_3, sq_base0_3, sq_base0_2, sq_top0_2]
-sq_rightpoly0 = [sq_top0_2, sq_base0_2, sq_base0_1, sq_top0_1]
-sq_leftpoly0 = [sq_top0_4, sq_base0_4, sq_base0_3, sq_top0_3]
-# Square1
-sq_bottompoly1 = [sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
-sq_toppoly1 = [sq_top1_2, sq_top1_1, sq_top1_4, sq_top1_3]
-sq_frontpoly1 = [sq_top1_1, sq_base1_1, sq_base1_4, sq_top1_4]
-sq_backpoly1 = [sq_top1_3, sq_base1_3, sq_base1_2, sq_top1_2]
-sq_rightpoly1 = [sq_top1_2, sq_base1_2, sq_base1_1, sq_top1_1]
-sq_leftpoly1 = [sq_top1_4, sq_base1_4, sq_base1_3, sq_top1_3]
+# # Defining Square0 (Cube)
+# # Coords of Vertices
+# sq_top0_1 = [-100,50,50]
+# sq_top0_2 = [-100,50,150]
+# sq_top0_3 = [-200,50,150]
+# sq_top0_4 = [-200,50,50]
+# sq_base0_1 = [-100,-50,50]
+# sq_base0_2 = [-100,-50,150]
+# sq_base0_3 = [-200,-50,150]
+# sq_base0_4 = [-200,-50,50]
+# # Polys defined from points in clockwise order viewed from the outside
+# sq_bottompoly0 = [sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
+# sq_toppoly0 = [sq_top0_2, sq_top0_1, sq_top0_4, sq_top0_3]
+# sq_frontpoly0 = [sq_top0_1, sq_base0_1, sq_base0_4, sq_top0_4]
+# sq_backpoly0 = [sq_top0_3, sq_base0_3, sq_base0_2, sq_top0_2]
+# sq_rightpoly0 = [sq_top0_2, sq_base0_2, sq_base0_1, sq_top0_1]
+# sq_leftpoly0 = [sq_top0_4, sq_base0_4, sq_base0_3, sq_top0_3]
+# # Defining object from group of polys
+# square0 = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
+# # Creating point cloud of objects vertices
+# square0_point_cloud = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4, sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
+# # Setting colors of each poly
+# square_colors0 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
+# # Defining object
+# Square0 = Object(square0_point_cloud, square0, square_colors0)
 
+# # Defining Square1 (Cube)
+# # Coords of Vertices
+# sq_top1_1 = [200,50,50]
+# sq_top1_2 = [200,50,150]
+# sq_top1_3 = [100,50,150]
+# sq_top1_4 = [100,50,50]
+# sq_base1_1 = [200,-50,50]
+# sq_base1_2 = [200,-50,150]
+# sq_base1_3 = [100,-50,150]
+# sq_base1_4 = [100,-50,50]
+# # Polys defined from points in clockwise order viewed from the outside
+# sq_bottompoly1 = [sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
+# sq_toppoly1 = [sq_top1_2, sq_top1_1, sq_top1_4, sq_top1_3]
+# sq_frontpoly1 = [sq_top1_1, sq_base1_1, sq_base1_4, sq_top1_4]
+# sq_backpoly1 = [sq_top1_3, sq_base1_3, sq_base1_2, sq_top1_2]
+# sq_rightpoly1 = [sq_top1_2, sq_base1_2, sq_base1_1, sq_top1_1]
+# sq_leftpoly1 = [sq_top1_4, sq_base1_4, sq_base1_3, sq_top1_3]
+# # Defining object from group of polys
+# square1 = [sq_bottompoly1, sq_toppoly1, sq_frontpoly1, sq_backpoly1, sq_rightpoly1, sq_leftpoly1]
+# # Creating point cloud of objects vertices
+# square1_point_cloud = [sq_top1_1, sq_top1_2, sq_top1_3, sq_top1_4, sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
+# # Setting colors of each poly
+# square_colors1 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
+# # Defining object
+# Square1 = Object(square1_point_cloud, square1, square_colors1)
 
-# Definition of the objects
-pyramid = [py_bottompoly, py_frontpoly, py_rightpoly, py_backpoly, py_leftpoly]
-square0 = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
-square1 = [sq_bottompoly1, sq_toppoly1, sq_frontpoly1, sq_backpoly1, sq_rightpoly1, sq_leftpoly1]
-
-# Polygon Colors
-pyramid_colors = ["black", "red", "green", "blue", "yellow"]
-square_colors0 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
-square_colors1 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
-
-# Definition of the objects' underlying point cloud.  No structure, just the points.
-pyramid_point_cloud = [py_apex, py_base1, py_base2, py_base3, py_base4]
-square0_point_cloud = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4, sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
-square1_point_cloud = [sq_top1_1, sq_top1_2, sq_top1_3, sq_top1_4, sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
-
-# Creating Object object
-Pyramid = Object(pyramid_point_cloud, pyramid, pyramid_colors)
-Square0 = Object(square0_point_cloud, square0, square_colors0)
-Square1 = Object(square1_point_cloud, square1, square_colors1)
+# Defining Cylinder
+# Coords of Vertices
+front1 = [-50,120.7107,50]
+front2 = [50,120.7107,50]
+front3 = [120.7107,50,50]
+front4 = [120.7107,-50,50]
+front5 = [50,-120.7107,50]
+front6 = [-50,-120.7107,50]
+front7 = [-120.7107,-50,50]
+front8 = [-120.7107,50,50]
+back1 = [-50,120.7107,450]
+back2 = [50,120.7107,450]
+back3 = [120.7107,50,450]
+back4 = [120.7107,-50,450]
+back5 = [50,-120.7107,450]
+back6 = [-50,-120.7107,450]
+back7 = [-120.7107,-50,450]
+back8 = [-120.7107,50,450]
+# Polys defined from points in clockwise order viewed from the outside
+northPoly = [front1, back1, back2, front2]
+northEastPoly = [front2, back2, back3, front3]
+eastPoly = [front3, back3, back4, front4]
+southEastPoly = [front4, back4, back5, front5]
+southPoly = [front5, back5, back6, front6]
+southWestPoly = [front6, back6, back7, front7]
+westPoly = [front7, back7, back8, front8]
+northWestPoly = [front8, back8, back1, front1]
+frontPoly = [front1, front2, front3, front4, front5, front6, front7, front8]
+backPoly = [back1, back8, back7, back6, back5, back4, back3, back2]
+# Defining object from group of polys
+cylinder = [northPoly, northEastPoly, eastPoly, southEastPoly, southPoly, southWestPoly, westPoly, northWestPoly, frontPoly, backPoly]
+# Creating point cloud of objects vertices
+cylinder_point_cloud = [front1, front2, front3, front4, front5, front6, front7, front8, back1, back2, back3, back4, back5, back6, back7, back8]
+# Setting colors of each poly
+cylinder_colors = ["black", "red", "green", "blue", "yellow", "black", "red", "green", "#666666", "#333333"]
+# Defining object
+cylinder = Object(cylinder_point_cloud, cylinder, cylinder_colors)
 
 #************************************************************************************
 
 #### OBJECT SELECTOR ####
 # Starting Object
-object = Square0
+object = Object.all_objects[0]
 curr = 1    # curr object index
 # This function is used to select an object with the arrow keys.
 def selector(direction):
