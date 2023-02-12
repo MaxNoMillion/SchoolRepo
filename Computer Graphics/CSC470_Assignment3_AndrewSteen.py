@@ -26,6 +26,13 @@ from tkinter import *
 CanvasWidth = 400
 CanvasHeight = 400
 d = 500
+Ia = 0.3 # intensity of the ambient light in the scene
+Ip = 0.7 # inensity of the point light source in the scene
+Kd = 0.75 # diffuse reflectivity of object
+Ks = 0.25 # diffuse reflectivity of point light
+specIndex = 4 # Spread of reflected light
+L = [1,1,-1] # Lighting vector, 45 degree angle, light is behind viewer's right shoulder
+V = [0,0,-1] # View vector, points towards viewer / center of projection [Left Hand Viewing System]
 
 # Debug Toggle
 DEBUG_POS = False
@@ -48,7 +55,7 @@ class Object:
         self.default_point_cloud = copy.deepcopy(point_cloud)       # Making deepCopy for resetting
         self.temp_visual_center = []                                # For inPlace rotation and scaling
         self.shape = shape                                          # List of polygons
-        self.color = color                                          # List of polygon colors     
+        self.color = color                                          # List of polygon colors       
         self.isSelected = False                                     # Toggle for object selection
         Object.all_objects.append(self)                             # Adds objects to list
 
@@ -63,21 +70,15 @@ class Object:
 
     # This class function will draw an object by repeatedly callying drawPoly on each polygon in the object
     def drawObject(self):
-        poly = self.shape
-        for i in range(len(poly)):
+        polys = self.shape
+        for i in range(len(polys)):
             if (Object.visual_mode == 1):                          # Draws wire frame
-                self.drawPolyWire(poly[i])
+                self.drawPolyWire(polys[i])
             elif (Object.visual_mode == 2):                        # Draws filled polygons with wireframe
-                self.polygonFill(poly[i], self.color[i])
-                self.drawPolyWire(poly[i])
-            elif (Object.visual_mode == 3):                        # Draws filled polygons
-                self.polygonFill(poly[i], self.color[i])
-            elif (Object.visual_mode == 4):                        # Draws flat shaded polygons
-                self.flatShade(poly[i])
-            elif (Object.visual_mode == 5):                        # Draws Gourand shaded polygons
-                self.gouraudShade(poly[i])
-            elif (Object.visual_mode == 6):                        # Draws Phong shaded polygonss
-                self.phongShade(poly[i])
+                self.polygonFill(polys, polys[i], i, self.color[i])
+                self.drawPolyWire(polys[i])
+            elif (Object.visual_mode > 2):                        # Draws filled polygons
+                self.polygonFill(polys, polys[i], i, self.color[i])
 
     # This class function will draw a polygon by repeatedly callying drawLine on each pair of points
     # making up the object.  Remember to draw a line between the last point and the first.
@@ -91,7 +92,11 @@ class Object:
                 self.drawLine(poly[i], poly[i+1])       # For Wireframe
 
     # This class fuction will fill each polygon pixel by pixel taking in account z values to fix z fighting   
-    def polygonFill(self, poly, color):
+    def polygonFill(self, polys, poly, poly_num, color):
+
+        # Gets both current poly normal and list of vertex normals of intersecting polys
+        poly_norm_list, poly_norm = getNormals(polys, poly_num)
+
         # Dont need to fill if ya cant see it
         if (not isFaceShowing(poly)):
             return
@@ -151,7 +156,7 @@ class Object:
                     # Checking if current z value should be displayed
                     if (z < Object.zBuffer[x][y]):
                         # Draw pixel
-                        w.create_line(x, y, x+1, y, fill=color)
+                        w.create_line(x, y, x+1, y, fill = getColor(poly_norm, poly_norm_list, color, x, y, z))
                         # Update value in zBuffer
                         Object.zBuffer[x][y] = z
                     # Index z by dZ
@@ -175,7 +180,7 @@ class Object:
                 edge_jX = edge_table[j][0]
                 edge_jZ = edge_table[j][4]
                 next += 1
-            
+
     # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
     # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
     # draw the actual line using the built-in create_line method
@@ -375,10 +380,103 @@ class Object:
 
 # ***************************** NON-Class Functions ***************************
 
+# This function determines color of pixel determined by which visual mode
+def getColor(poly_norm, poly_norm_list, color, x, y, z):
+    if Object.visual_mode == 2 or Object.visual_mode == 3:
+        return color
+    elif Object.visual_mode == 4:
+        return getFlatPixel(poly_norm)
+    elif Object.visual_mode == 5:
+        return getGaurandPixel(poly_norm, poly_norm_list, x, y, z)
+    else:
+        return getPhongPixel(poly_norm, poly_norm_list, x, y, z)
+
+def determineColor(pixel_norm):
+    global L
+    global V
+    global Ip
+    global Ia
+    global Ks
+    global Kd
+    global specIndex
+
+    L = normalize(L)
+    V = normalize(V)
+    # ambient diffuse component of illumination model
+    ambient = Ia * Kd
+    
+    N = normalize(pixel_norm)
+    NdotL = N[0]*L[0] + N[1]*L[1] + N[2]*L[2]
+    if NdotL < 0: NdotL = 0
+    diffuse = Ip * Kd * NdotL
+    R = reflect (N,L) # return vector is normalized in "reflect" 
+    RdotV = R[0]*V[0] + R[1]*V[1] + R[2]*V[2]
+    if RdotV < 0: RdotV = 0
+    specular = Ip * Ks * RdotV**specIndex
+    color = triColorHexCode(ambient, diffuse, specular)
+    return color
+
+# This function flat shades current pixels
+def getFlatPixel(norm):
+    return determineColor(norm)
+        
+# This function gaurand shades current pixels
+def getGaurandPixel(poly_norm, poly_norm_list, x, y, z):
+    pass
+
+# This function phonge shades current pixels
+def getPhongPixel(poly_norm, poly_norm_list, x, y, z):
+    pass
+
 # This function normalizes desired vector
-def normalize(vec):
-    Nx, Ny, Nz = vec[0], vec[1], vec[2]
-    return [Nx / math.sqrt(Nx*Nx + Ny*Ny + Nz*Nz), Ny / math.sqrt(Nx*Nx + Ny*Ny + Nz*Nz), Nz / math.sqrt(Nx*Nx + Ny*Ny + Nz*Nz),]
+def normalize(vector):
+    sumOfSquares = 0
+    for i in range(len(vector)):
+        sumOfSquares += vector[i]**2
+    magnitude = math.sqrt(sumOfSquares)
+    vect = []
+    for i in range(len(vector)):
+        vect.append(vector[i]/magnitude)
+    return vect
+
+# This function returns the reflection vector of the light vector
+def reflect(N, L):
+  R = []
+  # Normalize the Normal vector and Light vector
+  N = normalize(N)
+  L = normalize(L)
+  # Taking the cross product of the Normal and Light vector
+  twoCosPhi = 2 * (N[0]*L[0] + N[1]*L[1] + N[2]*L[2])
+  # Determining the direction of reflection vector
+  if twoCosPhi > 0:
+    for i in range(3):
+      R.append(N[i] - (L[i] / twoCosPhi))
+  elif twoCosPhi == 0:
+    for i in range(3):
+      R.append(-L[i])
+  else: # twoCosPhi < 0
+    for i in range(3):
+      R.append(-N[i] + (L[i] / twoCosPhi))
+  return normalize(R)
+
+# This function converts ambient, diffuse, and spectular to a hex code
+def triColorHexCode(ambient, diffuse, specular):
+  combinedColorCode = colorHexCode(ambient + diffuse + specular)
+  specularColorCode = colorHexCode(specular)
+  colorString = "#" + specularColorCode + combinedColorCode + specularColorCode
+  return colorString
+
+# This function formats hex code
+def colorHexCode(intensity):
+  hexString = str(hex(round(255 * intensity)))
+  if hexString[0] == "-": # illumination intensity should not be negative
+    print("illumination intensity is Negative. Setting to 00. Did you check for negative NdotL?")
+    trimmedHexString = "00"
+  else:
+    trimmedHexString = hexString[2:] # get rid of "0x" at the beginning of hex strings
+    if len(trimmedHexString) == 1: trimmedHexString = "0" + trimmedHexString
+    # we will use the green color component to display our monochrome illunmination results
+  return trimmedHexString
 
 # This function is to determine whether or not a polygon should be back face culled
 def isFaceShowing(poly):
@@ -472,6 +570,46 @@ def orientEdges(edges):
 def sortEdges(edges):
     # Single line sort function that sorts list based of specific sub-list index
     return (sorted(edges, key = lambda x: x[0][1]))
+
+# Gets normal of passed in poly
+def getNormal(poly):
+    # First Normal
+    P0, P1, P2 = poly[0], poly[1], poly[2]
+    P = getVector(P0, P1)
+    Q = getVector(P0, P2)
+    # To make code more clear.
+    Px, Py, Pz = P[0], P[1], P[2]
+    Qx, Qy, Qz = Q[0], Q[1], Q[2]
+    # Getting normal vector (No Normalization)
+    N = [Py*Qz - Pz*Qy, Pz*Qx - Px*Qz, Px*Qy - Py*Qx]
+    # Normalizing normal vector
+    N_norm = normalize(N);
+    return N_norm
+
+# Gets list of normals of polygon vertices
+def getNormals(poly_list, poly_num):
+    # # Slicing of end polygons
+    # poly_list = poly_list[:8]
+    # Getting normal of current poly
+    curr_poly_norm = getNormal(poly_list[poly_num])
+    norm_list = []
+    if poly_num < 8:
+        # Get Normals of adjacent polys                             # if current poly == poly_list[3]
+        pre_poly_norm = getNormal(poly_list[(poly_num - 1)%7])              # getting normal of poly_list[2] 
+        post_poly_norm = getNormal(poly_list[(poly_num + 1)%7])             # and poly_list[4]
+        # Getting Normal Vectors on Intersections of Polys 
+        NV1 = normalize(addVector(pre_poly_norm, curr_poly_norm))
+        NV2 = normalize(addVector(pre_poly_norm, curr_poly_norm))
+        NV3 = normalize(addVector(post_poly_norm, curr_poly_norm))
+        NV4 = normalize(addVector(post_poly_norm, curr_poly_norm))
+        # Creates List of Vertex Normals on Intersections of Polys
+        norm_list = [NV1, NV2, NV3, NV4]
+    # Returns both List of Normals and Current Poly Normal
+    return norm_list, curr_poly_norm
+        
+# This function adds vectors
+def addVector(P, Q):
+    return [P[0] + Q[0], P[1] + Q[1], P[2] + Q[2]]
 
 # ***************************** Initialize Objects ***************************
 # # Defining Pyramid
@@ -583,6 +721,12 @@ cylinder = [northPoly, northEastPoly, eastPoly, southEastPoly, southPoly, southW
 cylinder_point_cloud = [front1, front2, front3, front4, front5, front6, front7, front8, back1, back2, back3, back4, back5, back6, back7, back8]
 # Setting colors of each poly
 cylinder_colors = ["black", "red", "green", "blue", "yellow", "black", "red", "green", "#666666", "#333333"]
+
+# Getting normals of each vertex of each poly
+# cylinder_norms = getNormals(cylinder)
+
+# print(cylinder_norms)
+
 # Defining object
 cylinder = Object(cylinder_point_cloud, cylinder, cylinder_colors)
 
@@ -631,6 +775,21 @@ def num_2(event):
 def num_3(event):
     w.delete(ALL)
     Object.visual_mode = 3
+    # Redraw objects
+    Object.drawAllObjects()
+def num_4(event):
+    w.delete(ALL)
+    Object.visual_mode = 4
+    # Redraw objects
+    Object.drawAllObjects()
+def num_5(event):
+    w.delete(ALL)
+    Object.visual_mode = 5
+    # Redraw objects
+    Object.drawAllObjects()
+def num_6(event):
+    w.delete(ALL)
+    Object.visual_mode = 6
     # Redraw objects
     Object.drawAllObjects()
 
@@ -722,6 +881,9 @@ root.bind("<Left>", left_key)
 root.bind("1", num_1)
 root.bind("2", num_2)
 root.bind("3", num_3)
+root.bind("4", num_4)
+root.bind("5", num_5)
+root.bind("6", num_6)
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
 Object.drawAllObjects()
 w.pack()

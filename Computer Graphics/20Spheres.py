@@ -8,7 +8,7 @@ CanvasHeight = 600
 
 Ia = 0.3 # intensity of the ambient light in the scene
 Ip = 0.7 # inensity of the point light source in the scene
-L = [1,1,1] # Lighting vector, 45 degree angle, light is behind viewer's right shoul
+L = [1,1,1] # Lighting vector, 45 degree angle, light is behind viewer's right shoulder
 V = [0,0,1] # View vector, points towards viewer / center of projection [Right Hand Viewing System]
 
 def render20Spheres (Ia, Ip, L, V):
@@ -107,7 +107,6 @@ def colorHexCode(intensity):
     if len(trimmedHexString) == 1: trimmedHexString = "0" + trimmedHexString
     # we will use the green color component to display our monochrome illunmination results
   return trimmedHexString
-
 
 # Define a drawing canvas and render the 20 spheres on it
 root = Tk()
