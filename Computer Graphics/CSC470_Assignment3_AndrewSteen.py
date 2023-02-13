@@ -28,9 +28,9 @@ CanvasHeight = 400
 d = 500
 Ia = 0.3 # intensity of the ambient light in the scene
 Ip = 0.7 # inensity of the point light source in the scene
-Kd = 0.75 # diffuse reflectivity of object
-Ks = 0.25 # diffuse reflectivity of point light
-specIndex = 4 # Spread of reflected light
+Kd = 0.5 # diffuse reflectivity of object
+Ks = 0.5 # diffuse reflectivity of point light
+specIndex = 16 # Spread of reflected light
 L = [1,1,-1] # Lighting vector, 45 degree angle, light is behind viewer's right shoulder
 V = [0,0,-1] # View vector, points towards viewer / center of projection [Left Hand Viewing System]
 
@@ -124,7 +124,7 @@ class Object:
         # For Gaurand Shading
         edge_iI, edge_jI = getIntensity(edge_table[i][6]), getIntensity(edge_table[j][6])
         # For Phong Shading
-        edge_iN, edge_jN = edge_table[i][6], edge_table[j][6]
+        edge_iN, edge_jN = copy.deepcopy(edge_table[i][6]), copy.deepcopy(edge_table[j][6])
 
         # Looping through each y line of pixels
         for y in range(first_fill_line, last_fill_line):
@@ -136,12 +136,12 @@ class Object:
                 LeftX, RightX = edge_iX, edge_jX
                 LeftZ, RightZ = edge_iZ, edge_jZ
                 LeftI, RightI = edge_iI, edge_jI
-                LeftN, RightN = edge_iN, edge_jN
+                LeftN, RightN = copy.deepcopy(edge_iN), copy.deepcopy(edge_jN)
             else:   # Swap if not
                 LeftX, RightX = edge_jX, edge_iX
                 LeftZ, RightZ = edge_jZ, edge_iZ
                 LeftI, RightI = edge_jI, edge_iI
-                LeftN, RightN = edge_jN, edge_iN
+                LeftN, RightN = copy.deepcopy(edge_jN), copy.deepcopy(edge_iN)
             # For debugging Right and Left X and Z edge coords
             if DEBUG_XZ_RL:
                 print("LeftX: ", LeftX, "\tRightX: ", RightX, "LeftZ: ", LeftZ, "\tRightZ: ", RightZ, "LeftI: ", LeftI, "\tRightI: ", RightI, "LeftN: ", LeftN, "\tRightN: ", RightN)
@@ -149,7 +149,7 @@ class Object:
             # Initallize z index
             z = LeftZ
             # Initallize intensity index
-            intensity = LeftZ
+            intensity = copy.deepcopy(LeftZ)
             # Initallize n index
             n = copy.deepcopy(LeftN)
 
@@ -188,9 +188,9 @@ class Object:
                     # Index z by dZ
                     z += dZFillLine
                     intensity += dIFillLine
-                    n[0] = dNFillLine[0]
-                    n[1] = dNFillLine[1]
-                    n[2] = dNFillLine[2]
+                    n[0] += dNFillLine[0]
+                    n[1] += dNFillLine[1]
+                    n[2] += dNFillLine[2]
 
             # Index edge points by dX and dZ
             edge_iX = edge_iX + edge_table[i][3]
@@ -483,7 +483,8 @@ def getGaurandPixel(intensity):
 
 # This function phonge shades current pixels
 def getPhongPixel(pixel_norm):
-    color = triColorHexCode(getIntensityComponents(pixel_norm))
+    int_comps = getIntensityComponents(pixel_norm)
+    color = triColorHexCode(int_comps[0], int_comps[1], int_comps[2])
     return color
 
 # This function normalizes desired vector
