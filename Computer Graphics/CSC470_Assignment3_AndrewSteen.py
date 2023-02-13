@@ -101,7 +101,7 @@ class Object:
         # Convert polygon to display coords
         display_poly = projectAndConvertToDisplay(poly, poly_norm_list)
 
-        # Precompute edge_table: Xstart, Ystart, Yend, dX, Zstart, dZ, Nstart, dN, dI
+        # Precompute edge_table: Xstart, Ystart, Yend, dX, Zstart, dZ, Nstart, dN, Istart, dI
         edge_table = computeEdgeTable(display_poly)
 
         # For debuging
@@ -122,25 +122,25 @@ class Object:
         edge_iX, edge_jX = edge_table[i][0], edge_table[j][0]
         edge_iZ, edge_jZ = edge_table[i][4], edge_table[j][4]
         # For Gaurand Shading
-        edge_iI, edge_jI = getIntensity(edge_table[i][6]), getIntensity(edge_table[j][6])
+        edge_iI, edge_jI = copy.deepcopy(edge_table[i][8]), copy.deepcopy(edge_table[j][8])
         # For Phong Shading
         edge_iN, edge_jN = copy.deepcopy(edge_table[i][6]), copy.deepcopy(edge_table[j][6])
 
         # Looping through each y line of pixels
         for y in range(first_fill_line, last_fill_line):
             LeftX, RightX, LeftZ, RightZ = 0, 0, 0, 0       # Initiallzing and reseting right and left X and Z edge
-            LeftI, RightI = 0, 0                            # For Gaurand Shading
+            LeftI, RightI = [0,0,0], [0,0,0]                # For Gaurand Shading
             LeftN, RightN = [0,0,0], [0,0,0]                # For Phong Shading  
             # Insuring the left edge is left of the right edge for X and Z edges
             if (edge_iX < edge_jX):
                 LeftX, RightX = edge_iX, edge_jX
                 LeftZ, RightZ = edge_iZ, edge_jZ
-                LeftI, RightI = edge_iI, edge_jI
+                LeftI, RightI = copy.deepcopy(edge_iI), copy.deepcopy(edge_jI)
                 LeftN, RightN = copy.deepcopy(edge_iN), copy.deepcopy(edge_jN)
             else:   # Swap if not
                 LeftX, RightX = edge_jX, edge_iX
                 LeftZ, RightZ = edge_jZ, edge_iZ
-                LeftI, RightI = edge_jI, edge_iI
+                LeftI, RightI = copy.deepcopy(edge_jI), copy.deepcopy(edge_iI)
                 LeftN, RightN = copy.deepcopy(edge_jN), copy.deepcopy(edge_iN)
             # For debugging Right and Left X and Z edge coords
             if DEBUG_XZ_RL:
@@ -149,7 +149,7 @@ class Object:
             # Initallize z index
             z = LeftZ
             # Initallize intensity index
-            intensity = copy.deepcopy(LeftZ)
+            intensity = copy.deepcopy(LeftI)
             # Initallize n index
             n = copy.deepcopy(LeftN)
 
@@ -161,11 +161,13 @@ class Object:
                 dZFillLine = 0
 
             # Getting dI
-            dIFillLine = 0
+            dIFillLine = [0,0,0]
             if ((RightX - LeftX) != 0):
-                dIFillLine = (RightI - LeftI)/(RightX - LeftX)
+                dIFillLine[0] = (RightI[0] - LeftI[0])/(RightX - LeftX)
+                dIFillLine[1] = (RightI[1] - LeftI[1])/(RightX - LeftX)
+                dIFillLine[2] = (RightI[2] - LeftI[2])/(RightX - LeftX)
             else:
-                dIFillLine = 0
+                dIFillLine = [0,0,0]
 
             # Getting dN
             dNFillLine = [0,0,0]
@@ -187,7 +189,9 @@ class Object:
                         Object.zBuffer[x][y] = z
                     # Index z by dZ
                     z += dZFillLine
-                    intensity += dIFillLine
+                    intensity[0] += dIFillLine[0]
+                    intensity[1] += dIFillLine[1]
+                    intensity[2] += dIFillLine[2]
                     n[0] += dNFillLine[0]
                     n[1] += dNFillLine[1]
                     n[2] += dNFillLine[2]
@@ -197,8 +201,12 @@ class Object:
             edge_jX = edge_jX + edge_table[j][3]
             edge_iZ = edge_iZ + edge_table[i][5]
             edge_jZ = edge_jZ + edge_table[j][5]
-            edge_iI = edge_iI + edge_table[i][8]
-            edge_jI = edge_jI + edge_table[j][8]
+            edge_iI[0] = edge_iI[0] + edge_table[i][9][0]
+            edge_iI[1] = edge_iI[1] + edge_table[i][9][1]
+            edge_iI[2] = edge_iI[2] + edge_table[i][9][2]
+            edge_jI[0] = edge_jI[0] + edge_table[j][9][0]
+            edge_jI[1] = edge_jI[1] + edge_table[j][9][1]
+            edge_jI[2] = edge_jI[2] + edge_table[j][9][2]
             edge_iN[0] = edge_iN[0] + edge_table[i][7][0]
             edge_iN[1] = edge_iN[1] + edge_table[i][7][1]
             edge_iN[2] = edge_iN[2] + edge_table[i][7][2]
@@ -211,7 +219,9 @@ class Object:
                 i = next
                 edge_iX = edge_table[i][0]
                 edge_iZ = edge_table[i][4]
-                edge_iI = getIntensity(edge_table[i][6])
+                edge_iI[0] = edge_table[i][8][0]
+                edge_iI[1] = edge_table[i][8][1]
+                edge_iI[2] = edge_table[i][8][2]
                 edge_iN[0] = edge_table[i][6][0]
                 edge_iN[1] = edge_table[i][6][1]
                 edge_iN[2] = edge_table[i][6][2]
@@ -221,7 +231,9 @@ class Object:
                 j = next
                 edge_jX = edge_table[j][0]
                 edge_jZ = edge_table[j][4]
-                edge_jI = getIntensity(edge_table[j][6])
+                edge_jI[0] = edge_table[j][8][0]
+                edge_jI[1] = edge_table[j][8][1]
+                edge_jI[2] = edge_table[j][8][2]
                 edge_jN[0] = edge_table[j][6][0]
                 edge_jN[1] = edge_table[j][6][1]
                 edge_jN[2] = edge_table[j][6][2]
@@ -479,7 +491,8 @@ def getFlatPixel(norm):
         
 # This function gaurand shades current pixels
 def getGaurandPixel(intensity):
-    pass
+    color = triColorHexCode(intensity[0], intensity[1], intensity[2])
+    return color
 
 # This function phonge shades current pixels
 def getPhongPixel(pixel_norm):
@@ -603,13 +616,13 @@ def computeEdgeTable(display_points):
         Xstart, Ystart, Xend, Yend = edges[i][0][0], edges[i][0][1], edges[i][1][0], edges[i][1][1]
         Zstart, Zend = edges[i][0][2], edges[i][1][2]
         Nstart, Nend = edges[i][0][3], edges[i][1][3]       # Normals
-        Istart, Iend = getIntensity(Nstart), getIntensity(Nend)
+        Istart, Iend = getIntensityComponents(Nstart), getIntensityComponents(Nend)
         # Try/Except needed to catch divide by zero errors
         try:
             # Tries to build edge table
             edge_table.append([Xstart, Ystart, Yend, (Xend - Xstart)/(Yend - Ystart), Zstart, (Zend - Zstart)/(Yend - Ystart),
-                              Nstart, [(Nend[0] - Nstart[0])/(Yend - Ystart), (Nend[1] - Nstart[1])/(Yend - Ystart), 
-                              (Nend[2] - Nstart[2])/(Yend - Ystart)], (Iend - Istart)/(Yend - Ystart)])
+                              Nstart, [(Nend[0] - Nstart[0])/(Yend - Ystart), (Nend[1] - Nstart[1])/(Yend - Ystart), (Nend[2] - Nstart[2])/(Yend - Ystart)], 
+                              Istart, [(Iend[0] - Istart[0])/(Yend - Ystart), (Iend[1] - Istart[1])/(Yend - Ystart), (Iend[2] - Istart[2])/(Yend - Ystart)]])
         except ZeroDivisionError:
             # If dX or dZ is Undifined then pass (Edge not added to edge table)
             pass
