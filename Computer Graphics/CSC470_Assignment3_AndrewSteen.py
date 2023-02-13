@@ -102,6 +102,9 @@ class Object:
         display_poly = projectAndConvertToDisplay(poly, poly_norm_list)
 
         # Precompute edge_table: Xstart, Ystart, Yend, dX, Zstart, dZ, Nstart, dN, Istart, dI
+        # I treat Istart exactly like Nstart and same for dI and dN
+            # 'I' values have 3 compents (amdient, diffuse, specular) just as 'N' values (x, y, z)
+            # It worked out that i could use the same code for both
         edge_table = computeEdgeTable(display_poly)
 
         # For debuging
@@ -184,19 +187,21 @@ class Object:
                     # Checking if current z value should be displayed
                     if (z < Object.zBuffer[x][y]):
                         # Draw pixel
-                        w.create_line(x, y, x+1, y, fill = getColor(poly_norm, intensity, n, color))
-                        # Update value in zBuffer
+                        w.create_line(x, y, x+1, y, fill = getColor(poly_norm, intensity, n, color)) # Now to get color we must pass in several
+                        # Update value in zBuffer                                                       # parameters per pixel
                         Object.zBuffer[x][y] = z
                     # Index z by dZ
                     z += dZFillLine
+                    # Index intensity by dI
                     intensity[0] += dIFillLine[0]
                     intensity[1] += dIFillLine[1]
                     intensity[2] += dIFillLine[2]
+                    # Index intensity by dN
                     n[0] += dNFillLine[0]
                     n[1] += dNFillLine[1]
                     n[2] += dNFillLine[2]
 
-            # Index edge points by dX and dZ
+            # Index edge points by dX, dZ, dI, and dN
             edge_iX = edge_iX + edge_table[i][3]
             edge_jX = edge_jX + edge_table[j][3]
             edge_iZ = edge_iZ + edge_table[i][5]
@@ -442,22 +447,32 @@ class Object:
 
 # ***************************** NON-Class Functions ***************************
 
-# This function determines color of pixel determined by which visual mode
+# This function determines color of pixel depending on which fill mode
 def getColor(poly_norm, pixel_intensity, pixel_normal, color):
+    # Returns color of preselect polygon colors
     if Object.visual_mode == 2 or Object.visual_mode == 3:
         return color
+    # Returns color bases on normals of entire polygon with no variation
     elif Object.visual_mode == 4:
         return getFlatPixel(poly_norm)
+    # Returns color based on intensity value of pixels that is bilinearly interpolated from
+        # the joint normals of vertices
     elif Object.visual_mode == 5:
         return getGaurandPixel(pixel_intensity)
+    # Returns color based on normals of pixels that is bilinearly interpolated from
+        # the joint normals of vertices
     else:
         return getPhongPixel(pixel_normal)
 
+# This function determines the color of current pixel depending on the normal vector
 def determineColor(poly_norm):
-    int_comps = getIntensityComponents(poly_norm)
-    color = triColorHexCode(int_comps[0], int_comps[1], int_comps[2])
+    int_comps = getIntensityComponents(poly_norm)   # Returns ambient, diffuse, and specular
+    color = triColorHexCode(int_comps[0], int_comps[1], int_comps[2])   # Return color of pixel
     return color
 
+# This if the heart of the shading code
+    # with preselected parameters and the veiwer and light sources position
+    # it determines the intensity of the current pixel
 def getIntensityComponents(poly_norm):
     global L
     global V
@@ -468,45 +483,50 @@ def getIntensityComponents(poly_norm):
     global specIndex
     L = normalize(L)
     V = normalize(V)
-    # ambient diffuse component of illumination model
+    # Calculating ambiant component
     ambient = Ia * Kd
     N = normalize(poly_norm)
+    # Taking the dot product of Normal and Light vectors
     NdotL = N[0]*L[0] + N[1]*L[1] + N[2]*L[2]
-    if NdotL < 0: NdotL = 0
+    if NdotL < 0: NdotL = 0     # If neg set to 0
+    # Calculating diffuse component
     diffuse = Ip * Kd * NdotL
-    R = reflect (N,L) # return vector is normalized in "reflect" 
+    R = reflect(N,L) # return vector is normalized in "reflect" 
+    # Taking dot product of Refect and View vectors
     RdotV = R[0]*V[0] + R[1]*V[1] + R[2]*V[2]
-    if RdotV < 0: RdotV = 0
+    if RdotV < 0: RdotV = 0     # If neg set to 0
+    # Calculating specular component
     specular = Ip * Ks * RdotV**specIndex
 
     return [ambient, diffuse, specular]
 
-def getIntensity(poly_norm):
-    int_comps = getIntensityComponents(poly_norm)
-    return int_comps[0] + int_comps[1] + int_comps[2]
-
 # This function flat shades current pixels
-def getFlatPixel(norm):
-    return determineColor(norm)
+def getFlatPixel(poly_norm):
+    int_comps = getIntensityComponents(poly_norm)   # Returns ambient, diffuse, and specular
+    color = triColorHexCode(int_comps[0], int_comps[1], int_comps[2])   # Return color of pixel
+    return color
         
 # This function gaurand shades current pixels
 def getGaurandPixel(intensity):
-    color = triColorHexCode(intensity[0], intensity[1], intensity[2])
+    color = triColorHexCode(intensity[0], intensity[1], intensity[2])   # Return color of pixel
     return color
 
 # This function phonge shades current pixels
 def getPhongPixel(pixel_norm):
-    int_comps = getIntensityComponents(pixel_norm)
-    color = triColorHexCode(int_comps[0], int_comps[1], int_comps[2])
+    int_comps = getIntensityComponents(pixel_norm)   # Returns ambient, diffuse, and specular
+    color = triColorHexCode(int_comps[0], int_comps[1], int_comps[2])   # Return color of pixel
     return color
 
 # This function normalizes desired vector
 def normalize(vector):
     sumOfSquares = 0
+    # Summs the square of each component
     for i in range(len(vector)):
         sumOfSquares += vector[i]**2
+    # Gets mag
     magnitude = math.sqrt(sumOfSquares)
     vect = []
+    # Divides each component by mag
     for i in range(len(vector)):
         vect.append(vector[i]/magnitude)
     return vect
@@ -533,13 +553,18 @@ def reflect(N, L):
 
 # This function converts ambient, diffuse, and spectular to a hex code
 def triColorHexCode(ambient, diffuse, specular):
+  # Getting hex code for all components summed
   combinedColorCode = colorHexCode(ambient + diffuse + specular)
+  # Getting hex code for only specular component
   specularColorCode = colorHexCode(specular)
+  # Placing all intensity components into green channel and only specular component in red and blue
+    # This will cause the object to be green and the reflection to by white
   colorString = "#" + specularColorCode + combinedColorCode + specularColorCode
   return colorString
 
 # This function formats hex code
 def colorHexCode(intensity):
+  # Scaling intensity by 255
   hexString = str(hex(round(255 * intensity)))
   if hexString[0] == "-": # illumination intensity should not be negative
     print("illumination intensity is Negative. Setting to 00. Did you check for negative NdotL?")
@@ -586,11 +611,8 @@ def projectAndConvertToDisplay(poly, poly_norm_list):
         pro_point.append(Object.project(poly[i]))
     # Converting X and Y into display coords
     for i in range(len(pro_point)):
-        #print(poly_norm_list[i])
         pro_point[i].append(poly_norm_list[i])
-        #print(pro_point[i])
         display_points.append(Object.convertToDisplayCoordinates(pro_point[i]))
-        #print(display_points)
         display_points[i][0] = round(display_points[i][0])  # Rounding X and Y coords
         display_points[i][1] = round(display_points[i][1])
     return display_points
@@ -616,7 +638,7 @@ def computeEdgeTable(display_points):
         Xstart, Ystart, Xend, Yend = edges[i][0][0], edges[i][0][1], edges[i][1][0], edges[i][1][1]
         Zstart, Zend = edges[i][0][2], edges[i][1][2]
         Nstart, Nend = edges[i][0][3], edges[i][1][3]       # Normals
-        Istart, Iend = getIntensityComponents(Nstart), getIntensityComponents(Nend)
+        Istart, Iend = getIntensityComponents(Nstart), getIntensityComponents(Nend)     # Intensities
         # Try/Except needed to catch divide by zero errors
         try:
             # Tries to build edge table
@@ -685,6 +707,7 @@ def getNormals(poly_list, poly_num):
         # Creates List of Vertex Normals on Intersections of Polys
         norm_list = [NV1, NV2, NV3, NV4]
     else:
+        # Sets vertex normals of cylinder ends equal to cylinder end normal
         for i in range(8):
             norm_list.append(curr_poly_norm)
     # Returns both List of Normals and Current Poly Normal
@@ -692,82 +715,10 @@ def getNormals(poly_list, poly_num):
         
 # This function adds vectors
 def addVector(P, Q):
+    # Adds each component of the vectors
     return [P[0] + Q[0], P[1] + Q[1], P[2] + Q[2]]
 
 # ***************************** Initialize Objects ***************************
-# # Defining Pyramid
-# # Coords of Vertices
-# py_apex = [0,50,100]
-# py_base1 = [50,-50,50]
-# py_base2 = [50,-50,150]
-# py_base3 = [-50,-50,150]
-# py_base4 = [-50,-50,50]
-# # Polys defined from points in clockwise order viewed from the outside
-# py_frontpoly = [py_apex, py_base1, py_base4]
-# py_rightpoly = [py_apex, py_base2, py_base1]
-# py_backpoly = [py_apex, py_base3, py_base2]
-# py_leftpoly = [py_apex, py_base4, py_base3]
-# py_bottompoly = [py_base1, py_base2, py_base3, py_base4]
-# # Defining object from group of polys
-# pyramid = [py_bottompoly, py_frontpoly, py_rightpoly, py_backpoly, py_leftpoly]
-# # Creating point cloud of objects vertices
-# pyramid_point_cloud = [py_apex, py_base1, py_base2, py_base3, py_base4]
-# # Setting colors of each poly
-# pyramid_colors = ["black", "red", "green", "blue", "yellow"]
-# # Defining object
-# Pyramid = Object(pyramid_point_cloud, pyramid, pyramid_colors)
-
-# # Defining Square0 (Cube)
-# # Coords of Vertices
-# sq_top0_1 = [-100,50,50]
-# sq_top0_2 = [-100,50,150]
-# sq_top0_3 = [-200,50,150]
-# sq_top0_4 = [-200,50,50]
-# sq_base0_1 = [-100,-50,50]
-# sq_base0_2 = [-100,-50,150]
-# sq_base0_3 = [-200,-50,150]
-# sq_base0_4 = [-200,-50,50]
-# # Polys defined from points in clockwise order viewed from the outside
-# sq_bottompoly0 = [sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
-# sq_toppoly0 = [sq_top0_2, sq_top0_1, sq_top0_4, sq_top0_3]
-# sq_frontpoly0 = [sq_top0_1, sq_base0_1, sq_base0_4, sq_top0_4]
-# sq_backpoly0 = [sq_top0_3, sq_base0_3, sq_base0_2, sq_top0_2]
-# sq_rightpoly0 = [sq_top0_2, sq_base0_2, sq_base0_1, sq_top0_1]
-# sq_leftpoly0 = [sq_top0_4, sq_base0_4, sq_base0_3, sq_top0_3]
-# # Defining object from group of polys
-# square0 = [sq_bottompoly0, sq_toppoly0, sq_frontpoly0, sq_backpoly0, sq_rightpoly0, sq_leftpoly0]
-# # Creating point cloud of objects vertices
-# square0_point_cloud = [sq_top0_1, sq_top0_2, sq_top0_3, sq_top0_4, sq_base0_1, sq_base0_2, sq_base0_3, sq_base0_4]
-# # Setting colors of each poly
-# square_colors0 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
-# # Defining object
-# Square0 = Object(square0_point_cloud, square0, square_colors0)
-
-# # Defining Square1 (Cube)
-# # Coords of Vertices
-# sq_top1_1 = [200,50,50]
-# sq_top1_2 = [200,50,150]
-# sq_top1_3 = [100,50,150]
-# sq_top1_4 = [100,50,50]
-# sq_base1_1 = [200,-50,50]
-# sq_base1_2 = [200,-50,150]
-# sq_base1_3 = [100,-50,150]
-# sq_base1_4 = [100,-50,50]
-# # Polys defined from points in clockwise order viewed from the outside
-# sq_bottompoly1 = [sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
-# sq_toppoly1 = [sq_top1_2, sq_top1_1, sq_top1_4, sq_top1_3]
-# sq_frontpoly1 = [sq_top1_1, sq_base1_1, sq_base1_4, sq_top1_4]
-# sq_backpoly1 = [sq_top1_3, sq_base1_3, sq_base1_2, sq_top1_2]
-# sq_rightpoly1 = [sq_top1_2, sq_base1_2, sq_base1_1, sq_top1_1]
-# sq_leftpoly1 = [sq_top1_4, sq_base1_4, sq_base1_3, sq_top1_3]
-# # Defining object from group of polys
-# square1 = [sq_bottompoly1, sq_toppoly1, sq_frontpoly1, sq_backpoly1, sq_rightpoly1, sq_leftpoly1]
-# # Creating point cloud of objects vertices
-# square1_point_cloud = [sq_top1_1, sq_top1_2, sq_top1_3, sq_top1_4, sq_base1_1, sq_base1_2, sq_base1_3, sq_base1_4]
-# # Setting colors of each poly
-# square_colors1 = ["white", "#cccccc", "#999999", "#666666","#333333", "black"]
-# # Defining object
-# Square1 = Object(square1_point_cloud, square1, square_colors1)
 
 # Defining Cylinder
 # Coords of Vertices
