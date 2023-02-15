@@ -130,7 +130,7 @@ class Object:
         edge_iN, edge_jN = copy.deepcopy(edge_table[i][6]), copy.deepcopy(edge_table[j][6])
 
         # Looping through each y line of pixels
-        for y in range(first_fill_line, last_fill_line):
+        for y in range(first_fill_line, last_fill_line + 1):
             LeftX, RightX, LeftZ, RightZ = 0, 0, 0, 0       # Initiallzing and reseting right and left X and Z edge
             LeftI, RightI = [0,0,0], [0,0,0]                # For Gaurand Shading
             LeftN, RightN = [0,0,0], [0,0,0]                # For Phong Shading  
