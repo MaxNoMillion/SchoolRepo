@@ -12,22 +12,21 @@ import copy
 import math
 from tkinter import *
 
-CanvasWidth = 600
-CanvasHeight = 400
+CanvasWidth = 1200
+CanvasHeight = 800
 d = 500
 horizon = 3000
 center_of_projection = [0,0,-d]
 light_source = [500,500,0]
-Ia = 0.2 # Ia = 0.1
-Ip = 0.8 # Ip = 1
-#L = computeUnitVector() # Lighting vector, 45 degree angle, light is behind viewer's right shoulder
-#L = [1,1,-1]
+#light_source = [300,-100,100]
+Ia = 0.3 # Ia = 0.1
+Ip = 0.7 # Ip = 1
 V = [0,0,-1] # View vector, points towards viewer / center of projection [Left Hand Viewing System]
 sky_color = [0.53, 0.81, 0.92]    # "87CEEB"
 
 GLOBAL_BIGHTNESS = 1
 
-DEPTH = 4
+DEPTH = 5
 
 # Object class to make adding shapes easier
 class Object:
@@ -88,15 +87,15 @@ class Object:
       return self.get_local_color()
     else:
       int_point = self.get_intersection_point()
-      X, Y, Z = int_point[0], int_point[1], int_point[2]
+      X, Y, Z = int_point[0], int_point[1], int_point[2] - 3000
       if (X >= 0):
         color_flag = True
       else:
         color_flag = False
       
-      if (abs(X)%200 > 100): color_flag = not color_flag
+      if (abs(X)%400 > 200): color_flag = not color_flag
 
-      if (abs(Z)%200 > 100): color_flag = not color_flag
+      if (abs(Z)%400 > 200): color_flag = not color_flag
 
       if (color_flag):
         return [1,0,0]
@@ -104,18 +103,12 @@ class Object:
         return [1,1,1]
 
   def phongIntensity(self, ray):
-    global Ia
-    global Ip
-    # if (type(self) == Sphere):
-    #   print(self.intersection_point)
+
     L = computeUnitVector(self.get_intersection_point(), light_source)
     V = normalize(ray)    # Our ray is our view vector in this case
     # Calculating ambiant component
     ambient = Ia * self.get_Kd()
     N = self.getNormal()
-
-    # if (type(self) == Sphere):
-    #   print(N)
 
     # Taking the dot product of Normal and Light vectors
     NdotL = N[0]*L[0] + N[1]*L[1] + N[2]*L[2]
@@ -123,6 +116,7 @@ class Object:
     # Calculating diffuse component
     diffuse = Ip * self.get_Kd() * NdotL
     R = reflect(N,L) # return vector is normalized in "reflect" 
+
     # Taking dot product of Refect and View vectors
     RdotV = R[0]*V[0] + R[1]*V[1] + R[2]*V[2]
     if RdotV < 0: RdotV = 0     # If neg set to 0
@@ -174,28 +168,22 @@ class Sphere(Object):
     elif discriminant == 0: # One Root
       self.set_t(-b/(2*a))
       X, Y, Z = X1 + i*self.get_t(), Y1 + j*self.get_t(), Z1 + k*self.get_t()
-      self.set_intersection_point([X,Y,Z])
-      self.getReflection(ray)
 
-      if self.get_intersection_point()[2] > horizon or self.get_intersection_point()[2] < 0 or self.get_t() < 0.001: 
-        #print(self.intersection_point)
+      if Z > horizon or Z < 0 or self.get_t() < 0.001: 
         self.set_intersection_point([])
+      else:
+        self.set_intersection_point([X,Y,Z])
+        self.getReflection(ray)
 
-    elif discriminant > 0:  # Two Roots (take nearest)
-      # print("Two")
-      # print("Trace ray:", i, j, k)
-      # print("Starting Point:", X1, Y1, Z1)
-      # print("Center Point:", l, m, n)
-
+    else:  # Two Roots (take nearest)
       self.set_t((-b - math.sqrt(discriminant))/(2*a))
-
       X, Y, Z = X1 + i*self.get_t(), Y1 + j*self.get_t(), Z1 + k*self.get_t()
-      self.set_intersection_point([X,Y,Z])
 
-      self.getReflection(ray)
-
-      if self.get_intersection_point()[2] > horizon or self.get_intersection_point()[2] < 0 or self.get_t() < 0.001: 
+      if Z > horizon or Z < 0 or self.get_t() < 0.001: 
         self.set_intersection_point([])
+      else:
+        self.set_intersection_point([X,Y,Z])
+        self.getReflection(ray)
 
     return self.get_intersection_point()
 
@@ -223,12 +211,13 @@ class Plane(Object):
     if (A*i + B*j + C*k != 0):
       self.set_t(-(A*X1 + B*Y1 + C*Z1 - D)/(A*i + B*j + C*k))
       X, Y, Z = X1 + i*self.get_t(), Y1 + j*self.get_t(), Z1 + k*self.get_t()
-      self.set_intersection_point([X,Y,Z])
-      self.getReflection(ray)
       # Z cut-off plane/ -Z catch/ -t catch
-      if self.get_intersection_point()[2] > horizon or self.get_intersection_point()[2] < 0 or self.get_t() < 0.001: 
+      if Z > horizon or Z < -400 or self.get_t() < 0.001: 
         #print(self.intersection_point)
         self.set_intersection_point([])
+      else:
+        self.set_intersection_point([X,Y,Z])
+        self.getReflection(ray)
     else:
       self.set_t(999999)
       self.set_intersection_point([])
@@ -250,7 +239,7 @@ def traceRay(start_point, ray, depth):
   color = nearest_object.getColor()
   # Get intesity of current
   intensity = nearest_object.phongIntensity(ray)
-  #if inShadow(nearest_object, nearest_object.intersection_point): intensity *= 0.25
+  if inShadow(nearest_object, nearest_object.get_intersection_point()): intensity *= 0.25
   local_color = [color[0]*intensity*GLOBAL_BIGHTNESS, color[1]*intensity*GLOBAL_BIGHTNESS, color[2]*intensity*GLOBAL_BIGHTNESS]
   local_weight = nearest_object.get_local_weight()
   # Compute the Color Returned from the Reflected Ray
@@ -258,7 +247,6 @@ def traceRay(start_point, ray, depth):
   reflect_color = traceRay(nearest_object.get_intersection_point(), nearest_object.get_reflect_vector(), depth-1)
   # Combine local and reflect colors using weights
   final_color = [0,0,0]
-  # print(local_color, local_weight, reflect_color, reflect_weight)
   for i in range(3):
     final_color[i] = local_color[i]*local_weight + reflect_color[i]*reflect_weight
   return final_color
@@ -329,15 +317,19 @@ def reflect(N, L):
   else: # twoCosPhi < 0
     for i in range(3):
       R.append(-N[i] + (L[i] / twoCosPhi))
+  # for i in range(3):
+  #   R.append(N[i]*twoCosPhi - L[i])
   return normalize(R)
 
 # Instantiate Board Object
 # Args: position, normal, Kd, Ks, spec_index, local_weight, reflect, refract
-#board = Plane([0,-300,0], [0,1,0], 0.9, 0.1, 8, 0.8, 0.25, 0)
+board = Plane([0,-300,0], [0,1,0], 0.9, 0.1, 8, 0.8, 0.25, 0) # 0.9/0.1
 
 # Instantiate Sphere Objects
 # Args: position, radius, local_color, Kd, Ks, spec_index, local_weight, reflect, refract
-redSphere = Sphere([300, -100, 700], 200, [1,0.5,0.5], 0.5, 0.5, 8, 0.2, 0, 0)
+redSphere = Sphere([300,-100,300], 200, [1,0.5,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
+greenSphere = Sphere([-300,-200,300], 100, [0.5,1,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
+blueSphere = Sphere([0,0,800], 300, [0.5,0.5,1], 0.5, 0.5, 8, 0.5, 0.5, 0)
 
 # Define a drawing canvas and render the 20 spheres on it
 root = Tk()
