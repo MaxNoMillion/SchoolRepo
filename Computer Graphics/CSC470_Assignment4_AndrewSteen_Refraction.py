@@ -36,7 +36,7 @@ horizon = 3000
 # Brightens all color values
 GLOBAL_BIGHTNESS = 1
 # Depth of raytracing recursion
-DEPTH = 5
+DEPTH = 4
 
 # Object class to make adding shapes easier
 class Object:
@@ -88,6 +88,29 @@ class Object:
     denom = 2*(-N[0]*T[0] - N[1]*T[1] - N[2]*T[2])    # Denominator of eq.
     # Returning reflection vector
     return [N[0] + T[0]/denom, N[1] + T[1]/denom, N[2] + T[2]/denom]
+
+  # Class function for calculating refraction vector of curr intersecting ray
+  def getRefraction(self, ray):
+    # Getting T and N value
+    T = normalize(ray)
+    N = self.getNormal()
+    # Density constant
+    if self.get_d() == 1:
+      d = 1/self.get_density()
+      self.set_d(self.get_density())
+    else:
+      d = self.get_density()
+      self.set_d(1)
+    
+    # Inverse dot product of T and N
+    iTdotN = (-T[0]*N[0] - T[1]*N[1] - T[2]*N[2])
+    # Math
+    if (1 - (1/(d*d))*(1 - iTdotN*iTdotN) >= 0):
+      paranthesis = math.sqrt(1 - (1/(d*d))*(1 - iTdotN*iTdotN)) - (1/d)*iTdotN
+    else:
+      paranthesis = - (1/d)*iTdotN
+    # Return refraction vector
+    return [(1/d)*T[0] - paranthesis*N[0], (1/d)*T[1] - paranthesis*N[1], (1/d)*T[2] - paranthesis*N[2]]
 
   # Class function for getting local color of object
     # Only really needed because "board" as rules for coloring
@@ -152,11 +175,19 @@ class Sphere(Object):
     Object.__init__(self, position, Kd, Ks, spec_index, local_weight, reflect, refract)
     self._radius = radius
     self._local_color = local_color
+    self._density = 2
+    self._d = 1
   # Getters
   def get_radius(self):
     return self._radius
   def get_local_color(self):
     return self._local_color
+  def get_density(self):
+    return self._density  
+  def get_d(self):
+    return self._d
+  def set_d(self, d):
+    self._d = d
 
   # Subclass function for determining intersection point for Spheres
   def intersect(self, ray_origin, ray):
@@ -268,15 +299,31 @@ def traceRay(start_point, ray, depth):
   # Calculates local color after intensity change
   local_color = [color[0]*intensity*GLOBAL_BIGHTNESS, color[1]*intensity*GLOBAL_BIGHTNESS, color[2]*intensity*GLOBAL_BIGHTNESS]
   local_weight = nearest_object.get_local_weight()
+
+  temp = nearest_object.get_intersection_point()
+  ##### REFLECTION #####
   # Compute the Color Returned from the Reflected Ray
   reflect_weight = nearest_object.get_reflect()
+  reflect_color = [0,0,0]
   # Get reflection vector if object is reflective
-  if nearest_object.get_reflect() != 0: reflection_vector = nearest_object.getReflection(ray)
-  reflect_color = traceRay(nearest_object.get_intersection_point(), reflection_vector, depth-1)
+  if nearest_object.get_reflect() != 0:
+    reflection_vector = nearest_object.getReflection(ray)
+    reflect_color = traceRay(nearest_object.get_intersection_point(), reflection_vector, depth-1)
+
+  nearest_object.set_intersection_point(temp)
+  ##### REFRACTION #####
+  # Compute the Color Returned from the Refracted Ray
+  refract_weight = nearest_object.get_refract()
+  refract_color = [0,0,0]
+  # Get refraction vector if object is translucent
+  if nearest_object.get_refract() != 0: 
+    refraction_vector = nearest_object.getRefraction(ray)
+    refract_color = traceRay(nearest_object.get_intersection_point(), refraction_vector, depth-1)
+
   # Combine local and reflect colors using weights
   final_color = [0,0,0]
   for i in range(3):
-    final_color[i] = local_color[i]*local_weight + reflect_color[i]*reflect_weight
+    final_color[i] = local_color[i]*local_weight + reflect_color[i]*reflect_weight + refract_color[i]*refract_weight
   # Returns current color
   return final_color
 
@@ -377,6 +424,7 @@ board = Plane([0,-300,0], [0,1,0], 0.9, 0.1, 8, 0.8, 0.25, 0) # 0.9/0.1
 redSphere = Sphere([300,-100,300], 200, [1,0.5,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
 greenSphere = Sphere([-300,-200,300], 100, [0.5,1,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
 blueSphere = Sphere([0,0,800], 300, [0.5,0.5,1], 0.5, 0.5, 8, 0.5, 0.5, 0)
+clearSphere = Sphere([0,-225,200], 75, [1,1,1], 0.5, 0.5, 8, 0.5, 0.25, 0.9)
 
 # Define a drawing canvas and render objects on it
 root = Tk()

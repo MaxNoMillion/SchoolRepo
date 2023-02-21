@@ -17,13 +17,13 @@ if isTesting:
   CanvasWidth = 600
   CanvasHeight = 400
 else:
-  CanvasWidth = 1200
-  CanvasHeight = 800
+  CanvasWidth = 1920
+  CanvasHeight = 1080
 # Camera Position
 d = 500
 center_of_projection = [0,0,-d]
 # Point Light Source Position
-light_source = [500,500,0]
+light_source = [500,500,-500]
 # Ambient vs Point Light
 Ia = 0.3
 Ip = 0.7
@@ -32,7 +32,8 @@ V = [0,0,-1]
 # Skybox Color: "87CEEB"
 sky_color = [0.53, 0.81, 0.92]
 # Horizon Line (To keep horizon sharp)
-horizon = 3000
+horizon = 5000
+if isTesting: horizon = 3000
 # Brightens all color values
 GLOBAL_BIGHTNESS = 1
 # Depth of raytracing recursion
@@ -86,6 +87,7 @@ class Object:
     T = normalize(ray)
     N = self.getNormal()
     denom = 2*(-N[0]*T[0] - N[1]*T[1] - N[2]*T[2])    # Denominator of eq.
+    if denom == 0: denom = 0.00001
     # Returning reflection vector
     return [N[0] + T[0]/denom, N[1] + T[1]/denom, N[2] + T[2]/denom]
 
@@ -374,9 +376,16 @@ board = Plane([0,-300,0], [0,1,0], 0.9, 0.1, 8, 0.8, 0.25, 0) # 0.9/0.1
 
 # Instantiate Sphere Objects
 # Args: position, radius, local_color, Kd, Ks, spec_index, local_weight, reflect, refract
-redSphere = Sphere([300,-100,300], 200, [1,0.5,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
-greenSphere = Sphere([-300,-200,300], 100, [0.5,1,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
-blueSphere = Sphere([0,0,800], 300, [0.5,0.5,1], 0.5, 0.5, 8, 0.5, 0.5, 0)
+if isTesting: 
+  redSphere = Sphere([300,-100,300], 200, [1,0.5,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
+  greenSphere = Sphere([-300,-200,300], 100, [0.5,1,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
+  blueSphere = Sphere([0,0,800], 300, [0.5,0.5,1], 0.5, 0.5, 8, 0.5, 0.5, 0)
+  clearSphere = Sphere([0,-225,200], 75, [0.9,1,0.9], 0.5, 0.5, 8, 0.5, 0.75, 0)
+else:
+  redSphere = Sphere([700,100,400], 400, [1,0.5,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
+  greenSphere = Sphere([-400,-100,300], 200, [0.5,1,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
+  blueSphere = Sphere([0,300,1200], 600, [0.5,0.5,1], 0.5, 0.5, 8, 0.5, 0.5, 0)
+  clearSphere = Sphere([0,-150,200], 150, [0.9,1,0.9], 0.5, 0.5, 8, 0.5, 0.75, 0)
 
 # Define a drawing canvas and render objects on it
 root = Tk()
