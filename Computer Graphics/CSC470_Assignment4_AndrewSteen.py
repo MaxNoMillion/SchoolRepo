@@ -53,7 +53,6 @@ class Object:
     self._refract = refract
     self._t = 999999
     self._intersection_point = []
-    self._reflect_vector = []
     Sphere.all_objects.append(self)
   # Getter and Setter for t
   def get_t(self):
@@ -65,11 +64,6 @@ class Object:
     return self._intersection_point
   def set_intersection_point(self, intersection_point):
     self._intersection_point = intersection_point
-  # Getter and Setter for reflect_vector
-  def get_reflect_vector(self):
-    return self._reflect_vector
-  def set_reflect_vector(self, reflect_vector):
-    self._reflect_vector = reflect_vector
   # Only getters for the rest of the intance vars
   def get_position(self):
     return self._position
@@ -92,8 +86,8 @@ class Object:
     T = normalize(ray)
     N = self.getNormal()
     denom = 2*(-N[0]*T[0] - N[1]*T[1] - N[2]*T[2])    # Denominator of eq.
-    # Setting reflection vector
-    self.set_reflect_vector([N[0] + T[0]/denom, N[1] + T[1]/denom, N[2] + T[2]/denom])
+    # Returning reflection vector
+    return [N[0] + T[0]/denom, N[1] + T[1]/denom, N[2] + T[2]/denom]
 
   # Class function for getting local color of object
     # Only really needed because "board" as rules for coloring
@@ -198,10 +192,7 @@ class Sphere(Object):
       else:
         # Set intersection point
         self.set_intersection_point([X,Y,Z])
-        # Calculate and set reflection
-        self.getReflection(ray)
-
-    else:  # Two Roots (take nearest)
+    else: # Two Roots (take nearest)
       # Find t
       self.set_t((-b - math.sqrt(discriminant))/(2*a))
       # Calulate coords of intersection point
@@ -212,8 +203,6 @@ class Sphere(Object):
       else:
         # Set intersection point
         self.set_intersection_point([X,Y,Z])
-        # Calculate and set reflection
-        self.getReflection(ray)
     # Return intersection point
     return self.get_intersection_point()
 
@@ -249,8 +238,6 @@ class Plane(Object):
       else:
         # Set intersection point
         self.set_intersection_point([X,Y,Z])
-        # Calc and set reflection point
-        self.getReflection(ray)
     else:
       # Set t to max
       self.set_t(999999)         
@@ -283,7 +270,9 @@ def traceRay(start_point, ray, depth):
   local_weight = nearest_object.get_local_weight()
   # Compute the Color Returned from the Reflected Ray
   reflect_weight = nearest_object.get_reflect()
-  reflect_color = traceRay(nearest_object.get_intersection_point(), nearest_object.get_reflect_vector(), depth-1)
+  # Get reflection vector if object is reflective
+  if nearest_object.get_reflect() != 0: reflection_vector = nearest_object.getReflection(ray)
+  reflect_color = traceRay(nearest_object.get_intersection_point(), reflection_vector, depth-1)
   # Combine local and reflect colors using weights
   final_color = [0,0,0]
   for i in range(3):
@@ -389,7 +378,7 @@ redSphere = Sphere([300,-100,300], 200, [1,0.5,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
 greenSphere = Sphere([-300,-200,300], 100, [0.5,1,0.5], 0.5, 0.5, 8, 0.5, 0.5, 0)
 blueSphere = Sphere([0,0,800], 300, [0.5,0.5,1], 0.5, 0.5, 8, 0.5, 0.5, 0)
 
-# Define a drawing canvas and render objects
+# Define a drawing canvas and render objects on it
 root = Tk()
 outerframe = Frame(root)
 outerframe.pack()
