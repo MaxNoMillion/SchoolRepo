@@ -399,18 +399,19 @@ def inShadow(start_object, start_point):
 # Function for returning the reflection vector of the light vector
 def reflect(N, L):
   R = []
+  T = [-L[0], -L[1], -L[2]]
   # Taking the cross product of the Normal and Light vector
-  twoCosPhi = 2 * (N[0]*L[0] + N[1]*L[1] + N[2]*L[2])
+  twoCosPhi = 2 * (N[0]*T[0] + N[1]*T[1] + N[2]*T[2])
   # Determining the direction of reflection vector
   if twoCosPhi > 0:
     for i in range(3):
-      R.append(N[i] - (L[i] / twoCosPhi))
+      R.append(N[i] - (T[i] / twoCosPhi))
   elif twoCosPhi == 0:
     for i in range(3):
-      R.append(-L[i])
+      R.append(-T[i])
   else: # twoCosPhi < 0
     for i in range(3):
-      R.append(-N[i] + (L[i] / twoCosPhi))
+      R.append(-N[i] + (T[i] / twoCosPhi))
   # for i in range(3):
   #   R.append(N[i]*twoCosPhi - L[i])
   return normalize(R)
