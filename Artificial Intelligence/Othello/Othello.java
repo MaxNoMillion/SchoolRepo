@@ -322,25 +322,12 @@ public class Othello{
   }
 
   public void updateBoardVisuals(){
-<<<<<<< HEAD
-    printBoard();
+    printBoard(source_board);
     /** Prints the current turn */
     if (whos_turn == black)
       System.out.println("        ** Black's Turn **\n");
     else 
       System.out.println("        ** White's Turn **\n");
-=======
-    update();
-  }
-
-  public int getScore(char[][] board, char currentTurn){
-    int score = 0;
-    for (int i = 0; i < board_size; i++)
-      for (int j = 0; j < board_size; j++)
-        if (board[i + 1][j + 1] == currentTurn)
-          score += 1; //score_board[i][j];
-    return score;
->>>>>>> b5749c01cd44af0598b37177511d2d8ff1bffcff
   }
 
   public int[] readCoords(){
