@@ -7,10 +7,12 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Imports
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 // Main class
-public class Othello{
+public class Othello {
   // Declaring Constants
   /** Board size constant */
   private static final int board_size = 8;
@@ -22,37 +24,13 @@ public class Othello{
   // Declaring class variables.
   /** Creating a 2D array for game board. */
   char[][] source_board = new char[board_size + 2][board_size + 2];
-  /** String to keep track of who is playing. */
-  char whos_turn = black;
-  /** Boolean[] where the 0th index is the validity of move and 
-   *  1-8 are the directions that need flipping.*/
-  boolean[] move_state = new boolean[8];
-  /** Forfeit turn boolean
-   *  (If both players forfeited their turn, the game is over.) */
-  boolean forfeit_black = false;
-  boolean forfeit_white = false;
-  /** Declaring moveCoords */
-  int[] moveCoords = new int[2];
-  /** What game mode */
-  boolean isComputerPlayer = false;
-  /** Players' color (used when playing computer) */
-  char comColor = white;
-  char playerColor = white;
-  /** Depth of search */
-  int ply_depth = 7;
-  /** Alpah/Beta Pruning toggle */
-  boolean isAlphaBeta = false;
 
-  // Scoreboard heuristic
-  static final private int[][] score_board = {
-		{1000, -100,  150,  100,  100,  150, -100, 1000},
-		{-100, -200,   20,   20,   20,   20, -200, -100},
-		{ 150,   20,   15,   15,   15,   15,   20,  150},
-		{ 100,   20,   15,   10,   10,   15,   20,  100},
-		{ 100,   20,   15,   10,   10,   15,   20,  100},
-		{ 150,   20,   15,   15,   15,   15,   20,  150},
-		{-100, -200,   20,   20,   20,   20, -200, -100},
-		{1000, -100,  150,  100,  100,  150, -100, 1000}};
+   /** What game mode */
+   boolean isComputerPlayer = false;
+   /** Players' color (used when playing computer) */
+   char comColor = white;
+   char playerColor = white;
+
 
   ////// OTHELLO CONTRUCTOR //////
   public Othello(){
@@ -68,13 +46,20 @@ public class Othello{
     source_board[4 + 1][4 + 1] = white;
   }
 
+
   public void run(){
+    char whos_turn = black;
+    boolean forfeit_black = false;
+    boolean forfeit_white = false;
+
     // Main Game Loop //
     while (true){
+      int[] moveCoords = new int[2];
       // Move Validity Check //
       /** The first check is to determine if a valid move exsists
       *  This is checked first to reduce total calculations */
-      if (isPossibleMove()){
+      //System.out.println(getPossibleMove(source_board, whos_turn).size());
+      if (getPossibleMove(source_board, whos_turn).size() > 0){
         /** For end-of-game detection 
         *  (resets forfeit boolean for current player) */
         if (whos_turn == black)
@@ -83,16 +68,16 @@ public class Othello{
 
         /** Is computer or player */
         if (isComputerPlayer && comColor == whos_turn){
-          computerMove();
+          moveCoords = computerMove(whos_turn);
+        } else {
+          moveCoords = playerCoords(whos_turn);
         }
-        else
-          playerMove();
 
       } else {
         /** Else current player forfeits turn */
         System.out.println("\n    No possible move. Forfeit turn.\n");
         /** End game trigger */
-        if (isGameOver()){
+        if (isGameOver(forfeit_black, forfeit_white)){
           endGame();
           return;
         }
@@ -103,231 +88,86 @@ public class Othello{
       }
 
       /** Where flanked peices are flipped */
-      calculateBoard(moveCoords);
+      source_board = calculateBoard(source_board, moveCoords, whos_turn);
       /** Where turn toggles */
-      changeTurns();
+      if (whos_turn == black)
+        whos_turn = white;
+      else if (whos_turn == white)
+        whos_turn = black;
       /** Where the board display is updated */
-      updateBoardVisuals();
+      update(source_board, whos_turn);
+      
     }
   }
 
-  public void computerMove(){
-    if (isAlphaBeta)
-      minimax(source_board, whos_turn);
-    else
-      minimax(source_board, whos_turn);
+  public int[] computerMove(char whos_turn){
+    int[] temp = new int[2];
+    return temp;
   }
 
-  public void playerMove(){
-    /** Checks if inputted move if valid until valid move is inputted */
-    while (!isMoveValid(moveCoords)){
-      moveCoords = readCoords();      // Updates moveCoords by reading inputted coords
-      /** Determines move validity. If move is valid, then while loop is broken */
-      if (isMoveValid(moveCoords)) 
-        break;
-      /** Reprint board */
-      updateBoardVisuals();
-      System.out.println("**** Invalid input or move ****\n");
-    } 
+  public char[][] calculateBoard(char[][] board, int[] moveCoords, char whos_turn){
+    /** Places piece down on selected tile. */
+    if (whos_turn == black)
+      board[moveCoords[0] + 1][moveCoords[1] + 1] = black;
+    else
+      board[moveCoords[0] + 1][moveCoords[1] + 1] = white;
+
+    boolean[] flank_dir = getFlankDirections(board, moveCoords, whos_turn);
+    char[][] updated_board = flipFlankDirection(board, flank_dir, moveCoords, whos_turn);
+
+    return updated_board;
+  }
+
+  public char[][] flipFlankDirection(char[][] board, boolean[] flank_dir, int[] moveCoords, char whos_turn){
+    char[][] updated_board = copyBoard(board);
+    for (int dir = 0; dir < flank_dir.length; dir++){
+      int[] dirStep = new int[2];
+      dirStep = getDirectionOffSet(dir);
+
+      if (whos_turn == black){
+        while (board[moveCoords[0] + dirStep[0] + 1][moveCoords[1] + dirStep[1] + 1] == white){
+          /** Stepping to next flanked piece */
+          moveCoords[0] += dirStep[0];
+          moveCoords[1] += dirStep[1];
+          /** Flipping flanked white pieces to black */
+          updated_board[moveCoords[0] + 1][moveCoords[1] + 1] = black;
+        }
+      }
+      if (whos_turn == white){
+        while (board[moveCoords[0] + dirStep[0] + 1][moveCoords[1] + dirStep[1] + 1] == black){
+          /** Stepping to next flanked piece */
+          moveCoords[0] += dirStep[0];
+          moveCoords[1] += dirStep[1];
+          /** Flipping flanked black pieces to white */
+          updated_board[moveCoords[0] + 1][moveCoords[1] + 1] = white;
+        }
+      }
+    }
+    return updated_board;
   }
 
   public char[][] copyBoard(char[][] ori){
-   char[][] copy = new char[board_size + 2][board_size + 2];
-    /** Makes hard copies of same size boards */
-    for (int i = 1; i < board_size + 1; i++)
-      for (int j = 1; j < board_size + 1; j++)
-        copy[i][j] = ori[i][j];
-    return copy;
-  }
+    char[][] copy = new char[board_size + 2][board_size + 2];
+     /** Makes hard copies of same size boards */
+     for (int i = 1; i < board_size + 1; i++)
+       for (int j = 1; j < board_size + 1; j++)
+         copy[i][j] = ori[i][j];
+     return copy;
+   }
 
-  public int heuristic(char[][] board, char current_turn){
-    /** Assigning who's who */
-    char opponent = white;
-    if (current_turn == white)
-      opponent = black;
-    /** Getting both scores */
-    int ourScore = getScore(board, current_turn);
-    int opponentScore = getScore(board, opponent);
-    //System.out.println(ourScore - opponentScore);
-    return ourScore - opponentScore;
-  }
-
-  public int[][] getPossibleMoves(char[][] board){
-    int[][] possMoves = new int[64][2];
-    int moveCounter = 0;
-    for (int i = 1; i < board_size + 1; i++){
-      for (int j = 1; j < board_size + 1; j++){
-        int[] coords = {i, j};
-        if (isMoveValid(coords)){
-          possMoves[moveCounter + 1][0] = i;
-          possMoves[moveCounter + 1][1] = j;
-          moveCounter++;
-        }
-      }
-    }
-    possMoves[0][0] = moveCounter;
-    return possMoves;
-  }
-
-  public int minimaxValue(char[][] board, int depth, char oriTurn, char currentTurn){
-    /** Exit condition */
-    if (depth == ply_depth || isGameOver()){
-      return heuristic(board, oriTurn);
-    }
-
-    /** Assigns currentTurn as this will be what deturmines min or max */
-    char otherTurn = black;
-    if (currentTurn == black)
-      otherTurn = white;
-
-    /** Gets all possible moves for current turn. */
-    int[][] possibleMoves = getPossibleMoves(board);
-
-    /** If no possible move, then forfeit turn and load other's possible moves */
-    if (possibleMoves[0][0] == 0){
-      return minimaxValue(board, depth + 1, oriTurn, otherTurn);
-    }
-    else {
-      /** Combining min and max default values */
-      int bestEval = Integer.MIN_VALUE;
-      if (oriTurn != currentTurn)
-        bestEval = Integer.MAX_VALUE;
-
-      //System.out.println(bestEval);
-
-      // Runs through possible moves
-      for (int i = 1; i < possibleMoves[0][0] + 1; i++){
-        /** Hard copying current board to create branch */
-        char[][] temp_board = copyBoard(board);
-
-        /** Possible move of tempBoard */
-        temp_board[possibleMoves[i][0]][possibleMoves[i][1]] = currentTurn;
-
-        /** Recursively calling minimax fn to create more branches */
-        int eval = minimaxValue(temp_board, depth + 1, oriTurn, otherTurn);
-
-        /** Setting max and min values depending on if currentTurn 
-         *  in a maximizing turn or minimizing turn */
-        if (oriTurn == currentTurn){
-          if (eval > bestEval)
-            bestEval = eval;
-        } else {
-          if (eval < bestEval)
-            bestEval = eval;
-        }
-      }
-      return bestEval;
-    }
-  }
-
-  public void minimax(char[][] board, char currentTurn){
-
-    int[] best_coords = new int[2];
-
-    /** Assigns currentTurn as this will be what deturmines min or max */
-    char otherTurn = black;
-    if (currentTurn == black)
-      otherTurn = white;
-
-    /** Gets all possible moves for current turn. */
-    int[][] possibleMoves = getPossibleMoves(board);
-
-    int bestEval = Integer.MIN_VALUE;
-
-    for (int i = 1; i < possibleMoves[0][0] + 1; i++){
-
-      /** Hard copying current board to create branch */
-      char[][] temp_board = copyBoard(board);
-
-      /** Possible move of tempBoard */
-      temp_board[possibleMoves[i][0]][possibleMoves[i][1]] = currentTurn;
-
-      int eval = minimaxValue(temp_board, 1, currentTurn, otherTurn);
-
-      if (eval > bestEval){
-        bestEval = eval;
-        best_coords[0] = possibleMoves[i][0];
-        best_coords[1] = possibleMoves[i][1];
-      }  
-    }
-    moveCoords = best_coords;  
-    // Forming movestate (Not great way, but don't have time to refactor)
-    for (int dir = 0; dir < 8; dir++)
-      move_state[dir] = isValidDirection(dir, moveCoords);
-  }
-
-  public int minimax(int pos, int depth, boolean maxiPlayer, int alpha, int beta){
-    return 0;
-  }
-  
-  public void calculateBoard(int[] moveCoords){
-    /** Places piece down on selected tile. */
-    if (whos_turn == black)
-      source_board[moveCoords[0] + 1][moveCoords[1] + 1] = black;
-    else
-      source_board[moveCoords[0] + 1][moveCoords[1] + 1] = white;
-
-    for (int i = 0; i < move_state.length; i++)
-      if (move_state[i])
-        flipFlankDirection(i, moveCoords);
-  }
-
-  public void flipFlankDirection(int dir, int[] moveCoords){
-    // Declaring vars
-    int[] tempCoords = new int[2];
-    tempCoords[0] = moveCoords[0];    // Hard copying moveCoords
-    tempCoords[1] = moveCoords[1];
-    // Getting current direction Off-set
-    int[] dirStep = new int[2];
-    dirStep = getDirectionOffSet(dir);
-
-    if (whos_turn == black){
-      while (source_board[tempCoords[0] + dirStep[0] + 1][tempCoords[1] + dirStep[1] + 1] == white){
-        /** Stepping to next flanked piece */
-        tempCoords[0] += dirStep[0];
-        tempCoords[1] += dirStep[1];
-        /** Flipping flanked white pieces to black */
-        source_board[tempCoords[0] + 1][tempCoords[1] + 1] = black;
-      }
-    }
-    if (whos_turn == white){
-      while (source_board[tempCoords[0] + dirStep[0] + 1][tempCoords[1] + dirStep[1] + 1] == black){
-        /** Stepping to next flanked piece */
-        tempCoords[0] += dirStep[0];
-        tempCoords[1] += dirStep[1];
-        /** Flipping flanked black pieces to white */
-        source_board[tempCoords[0] + 1][tempCoords[1] + 1] = white;
-      }
-    }
-  }
-
-  public boolean isPossibleMove(){
-    int[] scanCoords = new int[2];
-    boolean valid = false;
-    for (int i = 1; i < board_size + 1; i++){
-      for (int j = 1; j < board_size + 1; j++){
-        scanCoords[0] = i;
-        scanCoords[1] = j;
-        valid = valid || isMoveValid(scanCoords);
-      }
-    }
-    return valid;
-  }
-
-  public void changeTurns(){
-    if (whos_turn == black)
-      whos_turn = white;
-    else if (whos_turn == white)
-      whos_turn = black;
-  }
-
-  public void updateBoardVisuals(){
-    printBoard(source_board);
-    /** Prints the current turn */
-    if (whos_turn == black)
-      System.out.println("        ** Black's Turn **\n");
-    else 
-      System.out.println("        ** White's Turn **\n");
+  public int[] playerCoords(char whos_turn){
+    int[] moveCoords = new int[2];
+    /** Checks if inputted move if valid until valid move is inputted */
+    while (!isMoveValid(source_board, moveCoords, whos_turn)){
+      moveCoords = readCoords();      // Updates moveCoords by reading inputted coords
+      /** Determines move validity. If move is valid, then while loop is broken */
+      if (isMoveValid(source_board, moveCoords, whos_turn)) 
+        return moveCoords;
+      /** Reprint board */
+      update(source_board, whos_turn);
+      System.out.println("**** Invalid input or move ****\n");
+    } 
+    return moveCoords;
   }
 
   public int[] readCoords(){
@@ -341,11 +181,27 @@ public class Othello{
       System.out.print("Please enter column coord: ");
       coords[1] = scan.nextInt();
     } catch(Exception e){}
-    
+    scan.close();
     return coords;
   }
 
-  public boolean isMoveValid(int[] moveCoords){
+  public List<int[]> getPossibleMove(char[][] board, char whos_turn){
+    /** Creating array list of possible move coords */
+    List<int[]> possMoves = new ArrayList<int[]>();
+    for (int i = 1; i < board_size + 1; i++){
+      for (int j = 1; j < board_size + 1; j++){
+        int[] coords = {i, j};
+        /** Finding valid moves */
+        //System.out.println(isMoveValid(board, coords, whos_turn));
+        if (isMoveValid(board, coords, whos_turn))
+          /** Adding moves to array list */
+          possMoves.add(coords);
+      }
+    }
+    return possMoves;
+  }
+
+  public boolean isMoveValid(char[][] board, int[] moveCoords, char whos_turn){
     boolean valid = false;
     // Validating move //
     /** Detecting Out-of-Bounds */
@@ -356,52 +212,52 @@ public class Othello{
       return valid;
 
     // Checking each direction for flanking and recording flanking direction in move_state
-    for (int dir = 0; dir < 8; dir++)
-      move_state[dir] = isValidDirection(dir, moveCoords);
-    
-    // Anding all directions to determine if move had valid direction
-    for (int i = 0; i < 8; i++)
-      valid = valid || move_state[i];
+    boolean[] flank_dir = getFlankDirections(board, moveCoords, whos_turn);
 
+    // Anding all directions to determine if move had valid direction
+    for (int i = 0; i < 8; i++){
+      //System.out.print(flank_dir[i]);
+      valid = valid || flank_dir[i];
+    }
     return valid;
   }
 
-  public boolean isValidDirection(int dir, int[] moveCoords){
-    // Declaring vars
-    int[] tempCoords = new int[2];
-    tempCoords[0] = moveCoords[0];    // Hard copying moveCoords
-    tempCoords[1] = moveCoords[1];
-    // Getting current direction Off-set
-    int[] dirStep = new int[2];
-    dirStep = getDirectionOffSet(dir);
-    
-    int counter = 0;
-    // Determining is direction is valid for current direction if black's turn //
-    if (whos_turn == black){
-      while (source_board[tempCoords[0] + dirStep[0] + 1][tempCoords[1] + dirStep[1] + 1] == white){        // Steps through each tile in current direction         
-        tempCoords[0] += dirStep[0];     // Steps tempCoord                                                           // as long as white
-        tempCoords[1] += dirStep[1];       // Unique to each direction
-        counter++;
+  public boolean[] getFlankDirections(char[][] board, int[] moveCoords, char whos_turn){
+    boolean[] flank_dir = new boolean[8];
+
+    for (int dir = 0; dir < 8; dir++){
+      // Getting current direction Off-set
+      int[] dirStep = getDirectionOffSet(dir);
+
+      int counter = 0;
+      // Determining is direction is valid for current direction if black's turn //
+      if (whos_turn == black){
+        System.out.println(moveCoords[0] + " " + moveCoords[1]);
+        while (board[moveCoords[0] + dirStep[0] + 1][moveCoords[1] + dirStep[1] + 1] == white){        // Steps through each tile in current direction         
+          moveCoords[0] += dirStep[0];     // Steps tempCoord                                                           // as long as white
+          moveCoords[1] += dirStep[1];       // Unique to each direction
+        }
+        if (board[moveCoords[0] + dirStep[0] + 1][moveCoords[1] + dirStep[1] + 1] == black && counter > 0){           // If black then flanked!
+          System.out.println("frof");
+          flank_dir[dir] = true;}
+        else
+          flank_dir[dir] = false;
       }
-      if (source_board[tempCoords[0] + dirStep[0] + 1][tempCoords[1] + dirStep[1] + 1] == black && counter > 0){            // If black then flanked!
-        return true;
+  
+      // Determining is direction is valid for current direction if white's turn //
+      if (whos_turn == white){
+        while (board[moveCoords[0] + dirStep[0] + 1][moveCoords[1] + dirStep[1] + 1] == black){        // Steps through each tile in current direction         
+          moveCoords[0] += dirStep[0];     // Steps tempCoord                                                           // as long as black
+          moveCoords[1] += dirStep[1];       // Unique to each direction
+          counter++;
+        }
+        if (board[moveCoords[0] + dirStep[0] + 1][moveCoords[1] + dirStep[1] + 1] == white && counter > 0)            // If white then flanked!
+          flank_dir[dir] = true;
+        else
+          flank_dir[dir] = false;
       }
     }
-
-    // Determining is direction is valid for current direction if white's turn //
-    if (whos_turn == white){
-      while (source_board[tempCoords[0] + dirStep[0] + 1][tempCoords[1] + dirStep[1] + 1] == black){        // Steps through each tile in current direction         
-        tempCoords[0] += dirStep[0];     // Steps tempCoord                                                           // as long as black
-        tempCoords[1] += dirStep[1];       // Unique to each direction
-        counter++;
-      }
-      if (source_board[tempCoords[0] + dirStep[0] + 1][tempCoords[1] + dirStep[1] + 1] == white && counter > 0)            // If white then flanked!
-        return true;
-    }
-
-    /** Returns false if there is no piece in current direction 
-     *  or if not successful flank */
-    return false;
+    return flank_dir;
   }
 
   public int[] getDirectionOffSet(int dir){
@@ -442,31 +298,14 @@ public class Othello{
     return dirStep;
   }
 
-  public boolean isGameOver(){
-    if (forfeit_black && forfeit_white)
-      return true;
-    return false;
-  }
-
-  public void endGame(){
-    System.out.println("Game has ended!!!");
-
-    if (counterPieces('w') > counterPieces('b'))
-      System.out.println("\n\n\n\nWhite WON!!!\n\n\n\n");
-    else if (counterPieces('b') > counterPieces('w'))
-      System.out.println("\n\n\n\nBlack WON!!!\n\n\n\n");
-    else 
-      System.out.println("\n\n\n\n It's a TIE!!!\n\n\n\n");
-  }
-  
-  public int counterPieces(char player){
+  public int countPieces(char[][] board, char player){
     int white_counter = 0;
     int black_counter = 0;
     for (int i = 1; i < board_size + 1; i++){
       for (int j = 1; j < board_size + 1; j++){
-        if (source_board[i][j] == white)
+        if (board[i][j] == white)
           white_counter++;
-        if (source_board[i][j] == black)
+        if (board[i][j] == black)
           black_counter++;
       }
     }
@@ -476,17 +315,17 @@ public class Othello{
       return black_counter;
   }
 
-  public void update(){
+  public void update(char[][] board, char whos_turn){
     System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     System.out.println("    ▓▓▓ ▓▓▓ ▓ ▓ ▓▓▓ ▓   ▓   ▓▓▓");
     System.out.println("    ▓ ▓  ▓  ▓▓▓ ▓▓  ▓   ▓   ▓ ▓");
     System.out.println("    ▓▓▓  ▓  ▓ ▓ ▓▓▓ ▓▓▓ ▓▓▓ ▓▓▓");
     System.out.println();
-    System.out.print("      White: " + counterPieces('w'));
-    System.out.println("\t    Black: " + counterPieces('b'));
+    System.out.print("      White: " + countPieces(board, 'w'));
+    System.out.println("\t    Black: " + countPieces(board, 'b'));
     //System.out.println();
 
-    printBoard(source_board);
+    printBoard(board);
 
     /** Prints the current turn */
     if (whos_turn == black)
@@ -498,7 +337,8 @@ public class Othello{
     if (isComputerPlayer && whos_turn == comColor){
       System.out.print("\nPress [ENTER] to continue.");
       Scanner scan = new Scanner(System.in);
-      String input = scan.nextLine();
+      scan.nextLine();
+      scan.close();
     } else {
       System.out.println();
     }
@@ -554,6 +394,7 @@ public class Othello{
           isComputerPlayer = false;
           break;
         }
+        scan.close();
       } catch (Exception e){}
 
       System.out.println("\n   ** Please type only '1' or '2' **");
@@ -577,18 +418,37 @@ public class Othello{
             playerColor = black;
             break;
           }
+          scan.close();
         } catch (Exception e){}
 
         System.out.println("\n   ** Please type only 'b' or 'w' **");
       }
     }
 
-    update();
+    update(source_board, black);
   }
-  /////// MAIN ///////
+
+  public boolean isGameOver(boolean fb, boolean fw){
+    if (fb && fw)
+      return true;
+    return false;
+  }
+
+  public void endGame(){
+    System.out.println("Game has ended!!!");
+
+    if (countPieces(source_board, 'w') > countPieces(source_board, 'b'))
+      System.out.println("\n\n\n\nWhite WON!!!\n\n\n\n");
+    else if (countPieces(source_board, 'b') > countPieces(source_board, 'w'))
+      System.out.println("\n\n\n\nBlack WON!!!\n\n\n\n");
+    else 
+      System.out.println("\n\n\n\n It's a TIE!!!\n\n\n\n");
+  }
+
   public static void main(String[] args){
     Othello othello = new Othello();
     othello.startUp();
     othello.run();
   }
 }
+
